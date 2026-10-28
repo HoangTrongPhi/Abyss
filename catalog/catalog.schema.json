@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Abyss catalog",
+  "description": "Apps and Blender add-ons the Abyss launcher offers. Bump `revision` on every change: the launcher keeps whichever of its bundled copy, its cached copy and the downloaded copy has the highest revision.",
+  "type": "object",
+  "required": ["schema", "revision", "apps"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": 1 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "apps": { "type": "array", "items": { "$ref": "#/$defs/app" } },
+    "addons": { "type": "array", "items": { "$ref": "#/$defs/addon" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "status": {
+      "enum": ["available", "beta", "coming_soon", "slot"],
+      "description": "available / beta: installable. coming_soon: shown with its name, not installable. slot: an empty, reserved place in the grid."
+    },
+    "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", "description": "GitHub owner/name whose latest release follows docs/RELEASE_STANDARD.md" },
+    "app": {
+      "type": "object",
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "icon": { "type": "string", "description": "Path relative to catalog.json (icons/<id>.svg) or an https URL" },
+        "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "status": { "$ref": "#/$defs/status" },
+        "repo": { "$ref": "#/$defs/repo" },
+        "homepage": { "type": "string", "format": "uri" },
+        "install": {
+          "type": "object",
+          "required": ["kind", "uninstallKey", "exe"],
+          "properties": {
+            "kind": { "const": "nsis" },
+            "uninstallKey": { "type": "string", "description": "HKCU/HKLM ...\\Uninstall\\<key> written by the installer (Tauri: the productName)" },
+            "exe": { "type": "string", "description": "Executable file name inside the install folder" },
+            "pubkey": { "type": "string", "description": "The app's updater public key (tauri.conf.json plugins.updater.pubkey); installers must carry a matching .sig" },
+            "manifest": { "type": "string", "description": "Override for https://github.com/<repo>/releases/latest/download/latest.json" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "if": { "properties": { "status": { "enum": ["available", "beta"] } } },
+      "then": { "required": ["name", "repo", "install"] },
+      "additionalProperties": false
+    },
+    "addon": {
+      "type": "object",
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "module": { "type": "string", "description": "Python module once installed: my_addon, or bl_ext.user_default.<id> for an extension" },
+        "repo": { "$ref": "#/$defs/repo" },
+        "asset": { "type": "string", "description": "Release asset name, * allowed: my_addon-*.zip" },
+        "url": { "type": "string", "description": "Direct zip URL instead of repo + asset" },
+        "minBlender": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "homepage": { "type": "string", "format": "uri" }
+      },
+      "if": { "properties": { "status": { "enum": ["available", "beta"] } } },
+      "then": { "required": ["name", "module"], "anyOf": [{ "required": ["url"] }, { "required": ["repo", "asset"] }] },
+      "additionalProperties": false
+    }
+  }
+}

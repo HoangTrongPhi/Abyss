@@ -1,0 +1,91 @@
+# Reusable release pipeline for every Abyss app (docs/RELEASE_STANDARD.md):
+# build the signed NSIS installer on Windows, write latest.json + SHA256SUMS.txt, publish the
+# GitHub release. An app repository calls it like this (.github/workflows/release.yml):
+#
+#   on:
+#     workflow_dispatch:
+#       inputs:
+#         version: { required: true }
+#         notes: { required: false }
+#   jobs:
+#     release:
+#       uses: HoangTrongPhi/Abyss/.github/workflows/release-tauri-app.yml@main
+#       with: { version: "${{ inputs.version }}", notes: "${{ inputs.notes }}" }
+#       secrets: inherit   # needs TAURI_SIGNING_PRIVATE_KEY (contents of ~/.tauri/<app>.key)
+#
+# Apps outside this repository are checked out next to Abyss, so their `file:../Abyss/packages/abyss-ui`
+# dependency resolves the same way as on your PC.
+name: Release Tauri app
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Semver version, e.g. 1.2.0"
+        required: true
+        type: string
+      notes:
+        description: "Release notes"
+        required: false
+        type: string
+        default: ""
+      app-path:
+        description: "Folder of the app inside the calling repository"
+        required: false
+        type: string
+        default: "."
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: true
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out the app
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Check out Abyss (scripts, shared UI)
+        if: github.repository != 'HoangTrongPhi/Abyss'
+        uses: actions/checkout@v4
+        with:
+          repository: HoangTrongPhi/Abyss
+          path: Abyss
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/${{ inputs.app-path }}/src-tauri
+
+      - name: Install shared UI dependencies
+        if: github.repository != 'HoangTrongPhi/Abyss'
+        working-directory: Abyss
+        run: npm ci
+
+      - name: Install app dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build, sign and publish
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $script = if ("${{ github.repository }}" -eq "HoangTrongPhi/Abyss") { "app/scripts/release.ps1" } else { "Abyss/scripts/release.ps1" }
+          & $script -App "app/${{ inputs.app-path }}" -Version "${{ inputs.version }}" -Notes "${{ inputs.notes }}" -Publish

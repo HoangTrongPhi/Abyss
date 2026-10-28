@@ -1,0 +1,18 @@
+{
+  "name": "abyss",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Abyss — launcher and shared SDK for Phineas' desktop apps",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @abyss/launcher",
+    "tauri": "npm run tauri -w @abyss/launcher --",
+    "build": "npm run build -w @abyss/launcher",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "new-app": "node scripts/create-app.mjs",
+    "catalog:check": "node scripts/validate-catalog.mjs"
+  }
+}

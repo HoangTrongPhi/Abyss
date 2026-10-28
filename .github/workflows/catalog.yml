@@ -1,0 +1,19 @@
+# Every catalog change is checked before it reaches the launchers that download it.
+name: Catalog
+
+on:
+  push:
+    paths: ["catalog/**", "scripts/validate-catalog.mjs"]
+  pull_request:
+    paths: ["catalog/**", "scripts/validate-catalog.mjs"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # --online also fetches each available app's latest.json and SHA256SUMS.txt.
+      - run: node scripts/validate-catalog.mjs --online

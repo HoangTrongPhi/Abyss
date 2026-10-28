@@ -1,0 +1,34 @@
+{
+  "$schema": "./catalog.schema.json",
+  "schema": 1,
+  "revision": 1,
+  "apps": [
+    {
+      "id": "poseidon",
+      "name": "Poseidon",
+      "tagline": "3D Asset Toolkit & Doctor",
+      "description": "Renamer, FBX path doctor, Blender packer, previewer, asset matcher and kit assembler for 3D artists, TDs and game developers.",
+      "category": "3D Pipeline",
+      "icon": "icons/poseidon.svg",
+      "accent": "#3b82f6",
+      "status": "available",
+      "repo": "HoangTrongPhi/P",
+      "homepage": "https://github.com/HoangTrongPhi/P",
+      "install": {
+        "kind": "nsis",
+        "uninstallKey": "Poseidon",
+        "exe": "poseidon.exe",
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY3RjNBMEI3Nzg0MTVCQTAKUldTZ1cwRjR0NkR6WnhnelNTZXdYMkJma1M1dnJDZnVLK3V0YnBDRWRBSTRJZk1ZUTgydXU3N1QK"
+      }
+    },
+    { "id": "slot-1", "status": "slot" },
+    { "id": "slot-2", "status": "slot" },
+    { "id": "slot-3", "status": "slot" },
+    { "id": "slot-4", "status": "slot" },
+    { "id": "slot-5", "status": "slot" }
+  ],
+  "addons": [
+    { "id": "addon-slot-1", "status": "slot" },
+    { "id": "addon-slot-2", "status": "slot" }
+  ]
+}

@@ -1,0 +1,25 @@
+# Release Abyss itself (Actions → Release Abyss → Run workflow). Installed copies update themselves.
+name: Release Abyss
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver version, e.g. 0.2.0"
+        required: true
+      notes:
+        description: "Release notes"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: ./.github/workflows/release-tauri-app.yml
+    with:
+      version: ${{ inputs.version }}
+      notes: ${{ inputs.notes }}
+      app-path: apps/launcher
+    secrets: inherit

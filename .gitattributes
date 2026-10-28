@@ -1,0 +1,6 @@
+# LF in the repository and the working copy, on every machine (also the Windows release runner).
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.zip binary

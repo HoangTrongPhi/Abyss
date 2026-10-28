@@ -1,0 +1,134 @@
+/** IPC contracts with the Rust side (`src-tauri/src/commands.rs`, `catalog.rs`, …). */
+
+export type Status = "available" | "beta" | "coming_soon" | "slot";
+
+export interface InstallSpec {
+  kind: "nsis";
+  uninstallKey: string;
+  exe: string;
+  pubkey?: string | null;
+  manifest?: string | null;
+}
+
+export interface CatalogApp {
+  id: string;
+  name: string;
+  tagline?: string | null;
+  description?: string | null;
+  category?: string | null;
+  icon?: string | null;
+  accent?: string | null;
+  status: Status;
+  repo?: string | null;
+  homepage?: string | null;
+  install?: InstallSpec | null;
+}
+
+export interface CatalogAddon {
+  id: string;
+  name: string;
+  tagline?: string | null;
+  description?: string | null;
+  status: Status;
+  module?: string | null;
+  repo?: string | null;
+  asset?: string | null;
+  url?: string | null;
+  minBlender?: string | null;
+  homepage?: string | null;
+}
+
+export interface Catalog {
+  schema: number;
+  revision: number;
+  apps: CatalogApp[];
+  addons: CatalogAddon[];
+}
+
+export type CatalogSource = "bundled" | "cache" | "remote" | "custom";
+
+export interface LoadedCatalog {
+  catalog: Catalog;
+  source: CatalogSource;
+  baseUrl: string | null;
+  error: string | null;
+}
+
+export interface Installed {
+  version: string;
+  installDir: string;
+  exe: string | null;
+}
+
+export interface AppStatus {
+  id: string;
+  installed: Installed | null;
+  running: boolean;
+}
+
+export interface LatestRelease {
+  version: string;
+  notes: string | null;
+  pubDate: string | null;
+  url: string;
+}
+
+export interface LatestInfo {
+  id: string;
+  latest: LatestRelease | null;
+  updateAvailable: boolean;
+  error: string | null;
+}
+
+export type JobPhase = "resolving" | "downloading" | "verifying" | "installing" | "uninstalling" | "done" | "error";
+
+export interface JobEvent {
+  /** App id, or the key the UI gave an add-on job. */
+  target: string;
+  phase: JobPhase;
+  downloaded: number;
+  total: number | null;
+  message: string | null;
+}
+
+export interface LocalApp {
+  id: string;
+  name: string;
+  path: string;
+  args: string[];
+}
+
+export interface Settings {
+  closeToTray: boolean;
+  autoCheck: boolean;
+  catalogUrl: string | null;
+  localApps: LocalApp[];
+}
+
+export interface BlenderInstall {
+  executable: string;
+  version: string;
+  series: string;
+  supported: boolean;
+  userDir: string;
+  modules: string[];
+}
+
+export interface AddonOutcome {
+  executable: string;
+  ok: boolean;
+  module: string | null;
+  error: string | null;
+}
+
+export interface AppInfo {
+  version: string;
+  dataDir: string;
+}
+
+export interface TrayApp {
+  id: string;
+  name: string;
+  path: string;
+  args: string[];
+}
