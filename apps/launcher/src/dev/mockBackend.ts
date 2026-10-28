@@ -27,7 +27,7 @@ const catalog: Catalog = {
 let installed: Record<string, string> = { poseidon: "1.0.1" };
 let running = new Set<string>();
 const localApps: LocalApp[] = [{ id: "local-my-tool", name: "My Tool", path: "D:\\Tools\\MyTool\\MyTool.exe", args: [] }];
-let settings: Settings = { closeToTray: true, autoCheck: true, catalogUrl: null, localApps };
+let settings: Settings = { closeToTray: true, autoCheck: true, notify: true, catalogUrl: null, language: "en", localApps };
 const blender: BlenderInstall[] = [
   { executable: "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe", version: "5.2.2", series: "5.2", supported: true, userDir: "", modules: ["node_wrangler_plus"] },
   { executable: "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe", version: "5.1.0", series: "5.1", supported: true, userDir: "", modules: [] },
@@ -103,8 +103,14 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("mock")) {
         case "get_settings":
           return settings;
         case "save_settings":
-          settings = { ...settings, closeToTray: a.closeToTray, autoCheck: a.autoCheck, catalogUrl: a.catalogUrl };
+          settings = { ...settings, closeToTray: a.closeToTray, autoCheck: a.autoCheck, notify: a.notify, catalogUrl: a.catalogUrl };
           return settings;
+        case "set_language":
+          settings = { ...settings, language: a.language };
+          return null;
+        case "notify_update":
+          console.info("[mock] Windows notification:", a.title, "—", a.body);
+          return settings.notify && !document.hasFocus();
         case "add_local_app": {
           const name = String(a.path).split("\\").pop()!.replace(/\.\w+$/, "");
           const app = { id: `local-${name.toLowerCase()}`, name, path: a.path, args: [] };

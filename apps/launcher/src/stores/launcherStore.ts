@@ -1,6 +1,9 @@
 import { create } from "zustand";
+import { tr } from "../i18n";
 import { inTauri, ipc, onJob, onTray } from "../lib/ipc";
 import type { AppInfo, AppStatus, CatalogApp, JobEvent, LatestInfo, LoadedCatalog, LocalApp, Settings, TrayApp } from "../lib/types";
+import { announceUpdates } from "./notificationStore";
+import { useSelfUpdate } from "./selfUpdateStore";
 import { toast } from "./uiStore";
 
 /** Installed / running state is polled this often (cheap: registry + process list). */
@@ -35,7 +38,7 @@ interface LauncherState {
   updateAll: () => Promise<void>;
   addLocalApp: (path: string) => Promise<void>;
   removeLocalApp: (id: string) => Promise<void>;
-  saveSettings: (patch: Partial<Pick<Settings, "closeToTray" | "autoCheck" | "catalogUrl">>) => Promise<void>;
+  saveSettings: (patch: Partial<Pick<Settings, "closeToTray" | "autoCheck" | "notify" | "catalogUrl">>) => Promise<void>;
 }
 
 const err = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -81,7 +84,7 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
     try {
       set({ catalog: await ipc.catalogRefresh() });
     } catch (e) {
-      toast("error", `Catalog: ${err(e)}`);
+      toast("error", tr().toasts.catalog(err(e)));
     }
   },
 
@@ -110,10 +113,12 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
     try {
       const list = await ipc.checkUpdates();
       set({ latest: Object.fromEntries(list.map((l) => [l.id, l])), lastChecked: Date.now() });
-      const n = list.filter((l) => l.updateAvailable).length;
-      if (!silent) toast("info", n ? `${n} update${n > 1 ? "s" : ""} available` : "Every app is up to date");
+      const found = list.filter((l) => l.updateAvailable && l.latest);
+      const names = get().catalog?.catalog.apps;
+      announceUpdates(found.map((l) => ({ appId: l.id, name: names?.find((a) => a.id === l.id)?.name ?? l.id, version: l.latest!.version, notes: l.latest!.notes })));
+      if (!silent) toast("info", found.length ? tr().toasts.updatesFound(found.length) : tr().toasts.allUpToDate);
     } catch (e) {
-      if (!silent) toast("error", `Update check failed: ${err(e)}`);
+      if (!silent) toast("error", tr().toasts.checkFailed(err(e)));
     } finally {
       set({ checking: false });
     }
@@ -170,7 +175,7 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
     try {
       const app: LocalApp = await ipc.addLocalApp(path);
       set((s) => (s.settings ? { settings: { ...s.settings, localApps: [...s.settings.localApps, app] } } : s));
-      toast("success", `${app.name} added`);
+      toast("success", tr().toasts.added(app.name));
       void get().pollStates();
     } catch (e) {
       toast("error", err(e));
@@ -186,7 +191,7 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
   async saveSettings(patch) {
     const cur = get().settings;
     if (!cur) return;
-    const next = { closeToTray: cur.closeToTray, autoCheck: cur.autoCheck, catalogUrl: cur.catalogUrl, ...patch };
+    const next = { closeToTray: cur.closeToTray, autoCheck: cur.autoCheck, notify: cur.notify, catalogUrl: cur.catalogUrl, ...patch };
     try {
       const settings = await ipc.saveSettings(next);
       set({ settings });
@@ -207,19 +212,20 @@ function omit<T>(rec: Record<string, T>, key: string): Record<string, T> {
 
 let lastTray = "";
 
-/** Keep the tray menu's app list equal to what can be launched. */
+/** Keep the tray menu's app list equal to what can be launched, and its tooltip's update count. */
 function syncTray() {
-  const { catalog, settings, states } = useLauncher.getState();
+  const { catalog, settings, states, latest } = useLauncher.getState();
   const apps: TrayApp[] = [];
   for (const a of catalog?.catalog.apps ?? []) {
     const exe = states[a.id]?.installed?.exe;
     if (exe) apps.push({ id: a.id, name: a.name, path: exe, args: [] });
   }
   for (const l of settings?.localApps ?? []) if (states[l.id]?.installed) apps.push({ id: l.id, name: l.name, path: l.path, args: l.args });
-  const key = JSON.stringify(apps);
+  const updates = Object.values(latest).filter((l) => l.updateAvailable).length + (useSelfUpdate.getState().phase === "available" ? 1 : 0);
+  const key = JSON.stringify([apps, updates]);
   if (key !== lastTray) {
     lastTray = key;
-    ipc.setTrayApps(apps).catch(() => {});
+    ipc.setTrayApps(apps, updates).catch(() => {});
   }
 }
 

@@ -2,6 +2,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { create } from "zustand";
 import { inTauri } from "../lib/ipc";
+import { announceUpdates, SELF_ID } from "./notificationStore";
 
 /**
  * Abyss updating itself: `latest.json` of the newest Abyss GitHub release (`plugins.updater` in
@@ -39,6 +40,7 @@ export const useSelfUpdate = create<SelfUpdateState>()((set, get) => ({
     try {
       pending = await check();
       set(pending ? { phase: "available", available: { version: pending.version, date: pending.date, notes: pending.body } } : { phase: "upToDate", available: null });
+      if (pending) announceUpdates([{ appId: SELF_ID, name: "Abyss", version: pending.version, notes: pending.body ?? null }]);
     } catch (e) {
       // No Abyss release published yet, or offline: quiet at startup, explained when asked.
       set({ phase: silent ? "idle" : "error", error: String(e) });

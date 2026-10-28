@@ -23,6 +23,7 @@ export const UI_FONTS: FontOption[] = [
   { id: "inter", label: "Inter", stack: '"Inter Variable", "Segoe UI", system-ui, sans-serif' },
   { id: "be-vietnam", label: "Be Vietnam Pro", stack: '"Be Vietnam Pro", "Segoe UI", system-ui, sans-serif' },
   { id: "bahnschrift", label: "Bahnschrift", stack: 'Bahnschrift, "Segoe UI", system-ui, sans-serif' },
+  { id: "tahoma", label: "Tahoma", stack: 'Tahoma, "Segoe UI", system-ui, sans-serif' },
 ];
 
 export const MONO_FONTS: FontOption[] = [

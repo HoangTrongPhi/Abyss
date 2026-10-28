@@ -4,7 +4,7 @@ export { PillBadge, type PillTone } from "./PillBadge";
 export { Checkbox, EmptyState, FieldLabel, PathText, ProgressBar, Segmented, TextField } from "./Controls";
 export { RailButton } from "./RailButton";
 export { Modal } from "./Modal";
-export { AppearanceSettings } from "./AppearanceSettings";
+export { APPEARANCE_LABELS_EN, AppearanceSettings, type AppearanceLabels } from "./AppearanceSettings";
 export {
   createAppearance,
   MONO_FONTS,

@@ -6,6 +6,8 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
+use crate::i18n::Lang;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -15,12 +17,16 @@ pub struct Settings {
     pub auto_check: bool,
     /// Catalog URL or file instead of the GitHub one (testing, private mirrors).
     pub catalog_url: Option<String>,
+    /// Windows notification when a check finds a new version while the window is not in front.
+    pub notify: bool,
+    /// UI language (`en`, `vi`), mirrored here for the tray menu and job messages.
+    pub language: String,
     pub local_apps: Vec<LocalApp>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { close_to_tray: true, auto_check: true, catalog_url: None, local_apps: Vec::new() }
+        Settings { close_to_tray: true, auto_check: true, catalog_url: None, notify: true, language: "en".into(), local_apps: Vec::new() }
     }
 }
 
@@ -48,6 +54,10 @@ impl SettingsStore {
 
     pub fn get(&self) -> Settings {
         self.inner.lock().map(|s| s.clone()).unwrap_or_default()
+    }
+
+    pub fn lang(&self) -> Lang {
+        self.inner.lock().map(|s| Lang::parse(&s.language)).unwrap_or(Lang::En)
     }
 
     pub fn update<T>(&self, f: impl FnOnce(&mut Settings) -> T) -> Result<T, String> {
@@ -100,8 +110,20 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = SettingsStore::load(dir.path().join("settings.json"));
         assert!(store.get().close_to_tray);
+        assert_eq!(store.lang(), Lang::En);
         store.update(|s| s.local_apps.push(LocalApp { id: "local-a".into(), name: "A".into(), path: "C:/a.exe".into(), args: vec![] })).unwrap();
         let again = SettingsStore::load(dir.path().join("settings.json"));
         assert_eq!(again.get().local_apps.len(), 1);
+    }
+
+    #[test]
+    fn older_settings_files_get_the_new_defaults() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        std::fs::write(&path, r#"{ "closeToTray": false, "autoCheck": true, "catalogUrl": null, "localApps": [] }"#).unwrap();
+        let s = SettingsStore::load(path).get();
+        assert!(!s.close_to_tray);
+        assert!(s.notify);
+        assert_eq!(s.language, "en");
     }
 }

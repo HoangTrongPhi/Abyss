@@ -101,7 +101,11 @@ export interface LocalApp {
 export interface Settings {
   closeToTray: boolean;
   autoCheck: boolean;
+  /** Windows notification when a check finds a new version. */
+  notify: boolean;
   catalogUrl: string | null;
+  /** Mirror of the UI language for the backend (tray, job messages); the UI's own copy wins. */
+  language: string;
   localApps: LocalApp[];
 }
 

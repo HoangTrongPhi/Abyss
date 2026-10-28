@@ -1,6 +1,7 @@
 import { cn } from "@abyss/ui";
 import { MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useT } from "../i18n";
 
 export interface MenuItem {
   label: string;
@@ -11,7 +12,8 @@ export interface MenuItem {
 }
 
 /** "⋯" button with a small dropdown; closes on outside click and Esc. */
-export function Menu({ items, label = "More actions" }: { items: MenuItem[]; label?: string }) {
+export function Menu({ items, label }: { items: MenuItem[]; label?: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -29,7 +31,7 @@ export function Menu({ items, label = "More actions" }: { items: MenuItem[]; lab
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" className="icon-btn" aria-label={label} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="icon-btn" aria-label={label ?? t.common.moreActions} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <MoreHorizontal className="size-4" />
       </button>
       {open && (

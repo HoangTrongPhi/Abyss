@@ -54,5 +54,12 @@ cargo test --manifest-path apps/launcher/src-tauri/Cargo.toml -- --ignored --noc
   4.2+ extensions) are installed, enabled and saved by Blender itself, headless
   (`src-tauri/scripts/abyss_addon_tool.py`), into every Blender the user ticks.
 - **Self-update** — Abyss updates itself from its own releases (key `~/.tauri/abyss.key`).
+- **Notifications** — every new version a check finds (an app's, or Abyss's own) lands once in the
+  bell of the top bar, with its Update button; while Abyss sits in the tray or behind other windows,
+  a Windows notification goes with it (*Settings → Behaviour*). The tray tooltip counts waiting updates.
+- **Language & look** — English / Tiếng Việt (*Settings → Language*; the first start follows Windows),
+  dark / light / system theme (also the sun/moon button in the top bar), fonts and UI size. UI texts
+  live in `apps/launcher/src/i18n/` (`en.ts` defines the keys, `vi.ts` must match them); the tray
+  menu and job messages come from `src-tauri/src/i18n.rs`.
 
 Releasing: [docs/RELEASE_STANDARD.md](docs/RELEASE_STANDARD.md).

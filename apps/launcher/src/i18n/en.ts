@@ -1,0 +1,203 @@
+import { APPEARANCE_LABELS_EN } from "@abyss/ui";
+
+/** English texts; the shape every other language follows (`Messages`). */
+export const en = {
+  /** For dates, times and "5 minutes ago". */
+  locale: "en-US",
+
+  pages: {
+    apps: { title: "Apps", description: "Install, open and keep every app of the suite up to date" },
+    updates: { title: "Updates", description: "New versions of your apps and of Abyss" },
+    blender: { title: "Blender add-ons", description: "Install add-ons into every Blender on this PC at once" },
+    settings: { title: "Settings", description: "Appearance, language, behaviour and where the catalog comes from" },
+  },
+
+  common: {
+    close: "Close",
+    dismiss: "Dismiss",
+    moreActions: "More actions",
+    comingSoon: "Coming soon",
+    install: "Install",
+    update: "Update",
+    open: "Open",
+    updateOnClose: "Update on close",
+    updatesOnClose: "Updates on close",
+    updateOnCloseHint: "The app is open; Abyss installs the update as soon as you close it",
+    projectPage: "Project page",
+    installAndRestart: "Install & restart",
+    whatsNew: "What's new",
+    hideNotes: "Hide notes",
+  },
+
+  topBar: {
+    search: "Search apps",
+    check: "Check for updates",
+    checking: "Checking…",
+    selfReady: (v: string) => `Abyss v${v} ready`,
+    toLight: "Switch to the light theme",
+    toDark: "Switch to the dark theme",
+  },
+
+  drop: {
+    unsupported: (name: string) => `Drop a program (.exe, .bat, .lnk…) or a Blender add-on .zip, not ${name}`,
+  },
+
+  apps: {
+    installedCount: (n: number) => `${n} app${n === 1 ? "" : "s"} installed`,
+    updatesWaiting: (n: number) => `${n} update${n === 1 ? "" : "s"} waiting`,
+    allCurrent: "everything up to date",
+    filterAll: "All",
+    filterInstalled: "Installed",
+    filterUpdates: (n: number) => (n ? `Updates (${n})` : "Updates"),
+    sectionUpdates: "Updates",
+    sectionInstalled: "Installed",
+    sectionAvailable: "Available",
+    sectionSoon: "Coming soon & free slots",
+    noUpdates: "No updates",
+    noUpdatesHint: "Every installed app is on its latest version.",
+    noMatch: (q: string) => `Nothing matches “${q}”`,
+  },
+
+  card: {
+    fileNotFound: "File not found",
+    inDevelopment: "In development",
+    versionAvailable: (v: string) => `v${v} available`,
+    notInstalled: "Not installed",
+    running: "Running",
+    yourApp: "Your app",
+    beta: "Beta",
+    local: "Local",
+    details: "Details & release notes",
+    showInExplorer: "Show in Explorer",
+    uninstall: "Uninstall",
+    removeLocal: "Remove from Abyss",
+    confirmUninstall: (name: string) => `Uninstall ${name}? Its settings and data folders are kept.`,
+  },
+
+  details: {
+    title: "Details",
+    installed: (v: string) => `Installed v${v}`,
+    latestRelease: "Latest release",
+    noNotes: "No release notes.",
+    notChecked: "Not checked yet — use Check for updates.",
+  },
+
+  slot: {
+    pickTitle: "Add an app to Abyss",
+    programs: "Programs",
+    title: (n: number) => `Free slot ${n}`,
+    hint: "Add your own program, script or shortcut — or drop an .exe on the window",
+  },
+
+  job: {
+    resolving: "Finding the latest release…",
+    downloading: "Downloading",
+    verifying: "Checking signature…",
+    installing: "Installing…",
+    uninstalling: "Uninstalling…",
+    done: "Done",
+    error: "Failed",
+  },
+
+  updates: {
+    selfAvailable: (v: string) => `Version ${v} is ready to install. Abyss restarts; your apps keep running.`,
+    selfUpToDate: "Abyss is up to date.",
+    selfChecking: "Checking…",
+    selfIdle: "Abyss updates itself from its GitHub releases.",
+    selfInstalling: "Installing…",
+    selfDownloading: (progress: string) => `Downloading ${progress}`,
+    check: "Check",
+    appUpdates: "App updates",
+    checkedAt: (time: string) => `Checked ${time}`,
+    notChecked: "Not checked yet",
+    updateAll: "Update all",
+    allUpToDate: "All apps are up to date",
+    allUpToDateHint: "Running apps are never updated under your feet: Abyss waits until you close them.",
+    upToDate: "Up to date",
+    noRelease: "No release yet",
+    checkFailed: "Check failed",
+  },
+
+  blender: {
+    pickTitle: "Install a Blender add-on",
+    zipFilter: "Blender add-on",
+    remove: "Remove",
+    reinstall: "Reinstall",
+    minVersion: (v: string) => `Blender ${v}+`,
+    slotTitle: (n: number) => `Add-on slot ${n}`,
+    slotHint: "Reserved for your next add-on. Click to install any add-on .zip now",
+    onThisPc: "Blender on this PC",
+    rescan: "Rescan",
+    looking: "Looking…",
+    lookingLong: "Looking for Blender (registry, Program Files, Steam, PATH)…",
+    version: (v: string) => `Blender ${v}`,
+    userAddons: (n: number) => `${n} user add-on${n === 1 ? "" : "s"}`,
+    needs42: "Needs 4.2+",
+    noneFound: "No Blender found",
+    noneFoundHint: "Install Blender 4.2 or newer, or set the BLENDER_PATH environment variable, then Rescan.",
+    addons: "Add-ons",
+    fromZip: "Install from .zip…",
+    note: "Installs go into every ticked Blender, enabled and saved in its preferences. Close Blender first: an open Blender writes its own preferences back when it quits.",
+  },
+
+  settings: {
+    appearance: "Appearance",
+    language: "Language",
+    languageHint: "Menus, messages and the tray icon. Apps keep their own language.",
+    behaviour: "Behaviour",
+    closeToTray: "Keep running in the tray when the window is closed",
+    closeToTrayHint: "Queued updates still install when their app closes. Quit from the tray icon.",
+    autoCheck: "Check for app updates automatically",
+    autoCheckHint: "At start and every 6 hours. Nothing installs without your click.",
+    notify: "Show a Windows notification when an update is found",
+    notifyHint: "Only while Abyss is in the tray or behind other windows. The bell in the top bar keeps the list.",
+    catalog: "Catalog",
+    reload: "Reload",
+    reloading: "Reloading…",
+    sources: {
+      bundled: "Built into this version of Abyss",
+      cache: "Last downloaded copy",
+      remote: "Downloaded from GitHub",
+      custom: "Custom source",
+    },
+    catalogStats: (revision: number, apps: number, slots: number) => `revision ${revision} · ${apps} app${apps === 1 ? "" : "s"} · ${slots} free slot${slots === 1 ? "" : "s"}`,
+    refreshFailed: (e: string) => `Could not refresh: ${e}`,
+    customCatalog: "Custom catalog (URL or catalog.json path)",
+    customPlaceholder: "Empty: the GitHub catalog",
+    save: "Save",
+    customHint: "For testing a new app before it is published. The ABYSS_CATALOG environment variable wins over this.",
+    about: "About",
+    dataFolder: "Data folder",
+  },
+
+  appearance: APPEARANCE_LABELS_EN,
+
+  notifications: {
+    title: "Notifications",
+    open: "Notifications",
+    clear: "Clear all",
+    empty: "No notifications yet",
+    emptyHint: "When an app of the suite or Abyss itself has a new version, it shows up here.",
+    newVersion: (name: string, v: string) => `${name} v${v} is available`,
+    installed: "Installed",
+    seeUpdates: "See updates",
+    details: "Details",
+    /** Windows notification texts. */
+    toastOne: (name: string, v: string) => `${name} v${v} is available`,
+    toastMany: (n: number) => `${n} updates available`,
+    toastBody: "Open Abyss to install it.",
+  },
+
+  toasts: {
+    catalog: (e: string) => `Catalog: ${e}`,
+    updatesFound: (n: number) => `${n} update${n === 1 ? "" : "s"} available`,
+    allUpToDate: "Every app is up to date",
+    checkFailed: (e: string) => `Update check failed: ${e}`,
+    added: (name: string) => `${name} added`,
+    blenderScanFailed: (e: string) => `Blender scan failed: ${e}`,
+    pickBlender: "Pick at least one Blender version",
+    blenderFailed: (v: string, e: string | null) => `Blender ${v}: ${e ?? "failed"}`,
+  },
+};
+
+export type Messages = typeof en;

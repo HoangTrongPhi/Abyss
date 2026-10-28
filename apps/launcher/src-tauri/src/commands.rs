@@ -4,10 +4,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
+use tauri_plugin_notification::NotificationExt;
 
 use crate::blender::{self, BlenderCache, BlenderInstall};
 use crate::catalog::{self, CatalogAddon, CatalogApp, LoadedCatalog, Source};
+use crate::i18n::Lang;
 use crate::installer::{self, Jobs, Phase, Reporter};
 use crate::release::{self, LatestRelease};
 use crate::settings::{self, LocalApp, Settings, SettingsStore};
@@ -169,21 +171,28 @@ pub async fn check_updates(state: State<'_, CatalogState>) -> Result<Vec<LatestI
 }
 
 #[tauri::command]
-pub async fn install_app(app: AppHandle, id: String, paths: State<'_, AppPaths>, state: State<'_, CatalogState>, jobs: State<'_, Jobs>) -> Result<Installed, String> {
+pub async fn install_app(
+    app: AppHandle,
+    id: String,
+    paths: State<'_, AppPaths>,
+    settings: State<'_, SettingsStore>,
+    state: State<'_, CatalogState>,
+    jobs: State<'_, Jobs>,
+) -> Result<Installed, String> {
     let entry = catalog_app(&state, &id)?;
     let _job = jobs.begin(&id)?;
     let r = Reporter::new(&app, &id);
     let result = installer::install_app(&r, &entry, &paths.downloads).await;
-    r.finish(result, |i| format!("{} v{} installed", entry.name, i.version))
+    r.finish(result, |i| settings.lang().installed(&entry.name, &i.version))
 }
 
 #[tauri::command]
-pub async fn uninstall_app(app: AppHandle, id: String, state: State<'_, CatalogState>, jobs: State<'_, Jobs>) -> Result<(), String> {
+pub async fn uninstall_app(app: AppHandle, id: String, settings: State<'_, SettingsStore>, state: State<'_, CatalogState>, jobs: State<'_, Jobs>) -> Result<(), String> {
     let entry = catalog_app(&state, &id)?;
     let _job = jobs.begin(&id)?;
     let r = Reporter::new(&app, &id);
     let result = installer::uninstall_app(&r, &entry).await;
-    r.finish(result, |_| format!("{} uninstalled", entry.name))
+    r.finish(result, |_| settings.lang().uninstalled(&entry.name))
 }
 
 #[tauri::command]
@@ -208,8 +217,25 @@ pub fn open_url(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn set_tray_apps(app: AppHandle, apps: Vec<TrayApp>) -> Result<(), String> {
-    tray::set_apps(&app, apps).map_err(|e| e.to_string())
+pub fn set_tray_apps(app: AppHandle, apps: Vec<TrayApp>, updates: usize) -> Result<(), String> {
+    tray::set_apps(&app, apps, updates).map_err(|e| e.to_string())
+}
+
+/// Windows notification for newly found updates (Settings → Notifications). Skipped while the
+/// window is in front: the bell in the top bar already shows them there. True when one was shown.
+#[tauri::command]
+pub fn notify_update(app: AppHandle, title: String, body: String, settings: State<'_, SettingsStore>) -> Result<bool, String> {
+    if !settings.get().notify {
+        return Ok(false);
+    }
+    let in_front = app
+        .get_webview_window("main")
+        .is_some_and(|w| w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false) && !w.is_minimized().unwrap_or(false));
+    if in_front {
+        return Ok(false);
+    }
+    app.notification().builder().title(title).body(body).show().map_err(|e| e.to_string())?;
+    Ok(true)
 }
 
 // --------------------------------------------------------------------------- settings & local apps
@@ -223,6 +249,7 @@ pub fn get_settings(settings: State<'_, SettingsStore>) -> Settings {
 pub fn save_settings(
     close_to_tray: bool,
     auto_check: bool,
+    notify: bool,
     catalog_url: Option<String>,
     paths: State<'_, AppPaths>,
     settings: State<'_, SettingsStore>,
@@ -233,6 +260,7 @@ pub fn save_settings(
         let changed = s.catalog_url != catalog_url;
         s.close_to_tray = close_to_tray;
         s.auto_check = auto_check;
+        s.notify = notify;
         s.catalog_url = catalog_url;
         changed
     })?;
@@ -240,6 +268,17 @@ pub fn save_settings(
         *lock(&state.0)? = initial_catalog(&paths.data, &settings.get());
     }
     Ok(settings.get())
+}
+
+/// The UI's language, for the texts the backend shows itself (tray, job results).
+#[tauri::command]
+pub fn set_language(app: AppHandle, language: String, settings: State<'_, SettingsStore>) -> Result<(), String> {
+    let code = Lang::parse(&language).code();
+    if settings.get().language == code {
+        return Ok(());
+    }
+    settings.update(|s| s.language = code.to_string())?;
+    tray::refresh(&app).map_err(|e| e.to_string())
 }
 
 /// Put a program the user picked (or dropped) into a free slot.
@@ -307,13 +346,13 @@ async fn addon_zip_url(addon: &CatalogAddon) -> Result<String, String> {
 
 /// Run the add-on tool in each chosen Blender, one after another. A Blender that is open is skipped:
 /// it would write its own preferences back over the change when it closes.
-fn run_in_each(executables: Vec<PathBuf>, action: &'static str, arg: String, scratch: PathBuf) -> Vec<AddonOutcome> {
+fn run_in_each(executables: Vec<PathBuf>, action: &'static str, arg: String, scratch: PathBuf, lang: Lang) -> Vec<AddonOutcome> {
     let running = system::running_exes();
     executables
         .into_iter()
         .map(|exe| {
             if running.contains(&system::path_key(&exe)) {
-                return AddonOutcome { error: Some("This Blender is open; close it first".into()), executable: exe, ok: false, module: None };
+                return AddonOutcome { error: Some(lang.texts().blender_open.into()), executable: exe, ok: false, module: None };
             }
             match blender::run_tool(&exe, action, &arg, &scratch) {
                 Ok(t) => AddonOutcome { executable: exe, ok: t.ok, module: t.module, error: t.error },
@@ -323,9 +362,8 @@ fn run_in_each(executables: Vec<PathBuf>, action: &'static str, arg: String, scr
         .collect()
 }
 
-fn summary(outcomes: &[AddonOutcome], verb: &str) -> String {
-    let ok = outcomes.iter().filter(|o| o.ok).count();
-    format!("{verb} in {ok} of {} Blender version(s)", outcomes.len())
+fn ok_count(outcomes: &[AddonOutcome]) -> usize {
+    outcomes.iter().filter(|o| o.ok).count()
 }
 
 /// Install a catalog add-on (`catalog_id`) or a zip from disk (`zip_path`) into the given Blenders.
@@ -339,9 +377,11 @@ pub async fn addon_install(
     zip_path: Option<PathBuf>,
     executables: Vec<PathBuf>,
     paths: State<'_, AppPaths>,
+    settings: State<'_, SettingsStore>,
     state: State<'_, CatalogState>,
     jobs: State<'_, Jobs>,
 ) -> Result<Vec<AddonOutcome>, String> {
+    let lang = settings.lang();
     let _job = jobs.begin(&key)?;
     let r = Reporter::new(&app, &key);
     let result = async {
@@ -362,18 +402,28 @@ pub async fn addon_install(
         r.phase(Phase::Installing, None);
         let scratch = paths.data.join("blender");
         let arg = zip.to_string_lossy().to_string();
-        tokio::task::spawn_blocking(move || run_in_each(executables, "install", arg, scratch)).await.map_err(|e| e.to_string())
+        tokio::task::spawn_blocking(move || run_in_each(executables, "install", arg, scratch, lang)).await.map_err(|e| e.to_string())
     }
     .await;
-    r.finish(result, |o| summary(o, "Installed"))
+    r.finish(result, |o| lang.addons_installed(ok_count(o), o.len()))
 }
 
 #[tauri::command]
-pub async fn addon_remove(app: AppHandle, key: String, module: String, executables: Vec<PathBuf>, paths: State<'_, AppPaths>, jobs: State<'_, Jobs>) -> Result<Vec<AddonOutcome>, String> {
+#[allow(clippy::too_many_arguments)] // Tauri injects the State arguments
+pub async fn addon_remove(
+    app: AppHandle,
+    key: String,
+    module: String,
+    executables: Vec<PathBuf>,
+    paths: State<'_, AppPaths>,
+    settings: State<'_, SettingsStore>,
+    jobs: State<'_, Jobs>,
+) -> Result<Vec<AddonOutcome>, String> {
+    let lang = settings.lang();
     let _job = jobs.begin(&key)?;
     let r = Reporter::new(&app, &key);
     r.phase(Phase::Uninstalling, None);
     let scratch = paths.data.join("blender");
-    let result = tokio::task::spawn_blocking(move || run_in_each(executables, "remove", module, scratch)).await.map_err(|e| e.to_string());
-    r.finish(result, |o| summary(o, "Removed"))
+    let result = tokio::task::spawn_blocking(move || run_in_each(executables, "remove", module, scratch, lang)).await.map_err(|e| e.to_string());
+    r.finish(result, |o| lang.addons_removed(ok_count(o), o.len()))
 }

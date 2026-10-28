@@ -4,6 +4,7 @@ mod blender;
 mod catalog;
 mod commands;
 mod http;
+mod i18n;
 mod installer;
 mod release;
 mod settings;
@@ -25,6 +26,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let data = app.path().app_local_data_dir()?;
             let settings = SettingsStore::load(data.join("settings.json"));
@@ -58,8 +60,10 @@ pub fn run() {
             commands::reveal_path,
             commands::open_url,
             commands::set_tray_apps,
+            commands::notify_update,
             commands::get_settings,
             commands::save_settings,
+            commands::set_language,
             commands::add_local_app,
             commands::remove_local_app,
             commands::blender_scan,

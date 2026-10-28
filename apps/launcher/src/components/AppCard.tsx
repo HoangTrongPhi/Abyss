@@ -2,6 +2,7 @@ import { PillBadge, cn } from "@abyss/ui";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { ArrowDownToLine, BellRing, ExternalLink, FolderOpen, Info, Play, RefreshCw, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useT, type Messages } from "../i18n";
 import { fileName } from "../lib/format";
 import { ipc } from "../lib/ipc";
 import { useLauncher, type AppView } from "../stores/launcherStore";
@@ -10,17 +11,18 @@ import { AppIcon } from "./AppIcon";
 import { JobProgress, jobBusy } from "./JobProgress";
 import { Menu, type MenuItem } from "./Menu";
 
-function versionLine(v: AppView): string {
-  if (v.kind === "local") return v.status?.installed ? fileName(v.local!.path) : "File not found";
+function versionLine(v: AppView, t: Messages["card"]): string {
+  if (v.kind === "local") return v.status?.installed ? fileName(v.local!.path) : t.fileNotFound;
   const installed = v.status?.installed?.version;
   const latest = v.latest?.latest?.version;
   if (installed && v.latest?.updateAvailable) return `v${installed} → v${latest}`;
   if (installed) return `v${installed}`;
-  if (v.app?.status === "coming_soon") return "In development";
-  return latest ? `v${latest} available` : "Not installed";
+  if (v.app?.status === "coming_soon") return t.inDevelopment;
+  return latest ? t.versionAvailable(latest) : t.notInstalled;
 }
 
 export function AppCard({ view: v }: { view: AppView }) {
+  const t = useT();
   const install = useLauncher((s) => s.install);
   const uninstall = useLauncher((s) => s.uninstall);
   const launch = useLauncher((s) => s.launch);
@@ -37,43 +39,43 @@ export function AppCard({ view: v }: { view: AppView }) {
   const exe = v.status?.installed?.exe ?? null;
 
   const menu: MenuItem[] = [];
-  if (v.kind === "catalog") menu.push({ label: "Details & release notes", icon: <Info />, onSelect: () => setDetailsId(v.id) });
-  if (exe) menu.push({ label: "Show in Explorer", icon: <FolderOpen />, onSelect: () => void ipc.revealPath(exe).catch((e) => toast("error", String(e))) });
-  if (v.app?.homepage) menu.push({ label: "Project page", icon: <ExternalLink />, onSelect: () => void ipc.openUrl(v.app!.homepage!).catch(() => {}) });
-  if (v.kind === "catalog" && installed) menu.push({ label: "Uninstall", icon: <Trash2 />, danger: true, disabled: busy || running, onSelect: () => void ask(`Uninstall ${v.name}? Its settings and data folders are kept.`, { title: "Abyss", kind: "warning" }).then((ok) => void (ok && uninstall(v.id))) });
-  if (v.kind === "local") menu.push({ label: "Remove from Abyss", icon: <Trash2 />, danger: true, onSelect: () => void removeLocal(v.id) });
+  if (v.kind === "catalog") menu.push({ label: t.card.details, icon: <Info />, onSelect: () => setDetailsId(v.id) });
+  if (exe) menu.push({ label: t.card.showInExplorer, icon: <FolderOpen />, onSelect: () => void ipc.revealPath(exe).catch((e) => toast("error", String(e))) });
+  if (v.app?.homepage) menu.push({ label: t.common.projectPage, icon: <ExternalLink />, onSelect: () => void ipc.openUrl(v.app!.homepage!).catch(() => {}) });
+  if (v.kind === "catalog" && installed) menu.push({ label: t.card.uninstall, icon: <Trash2 />, danger: true, disabled: busy || running, onSelect: () => void ask(t.card.confirmUninstall(v.name), { title: "Abyss", kind: "warning" }).then((ok) => void (ok && uninstall(v.id))) });
+  if (v.kind === "local") menu.push({ label: t.card.removeLocal, icon: <Trash2 />, danger: true, onSelect: () => void removeLocal(v.id) });
 
   let action: ReactNode;
   if (busy) action = null;
-  else if (comingSoon) action = <PillBadge>Coming soon</PillBadge>;
+  else if (comingSoon) action = <PillBadge>{t.common.comingSoon}</PillBadge>;
   else if (!installed && v.kind === "local") action = null;
   else if (!installed)
     action = (
       <button type="button" className="btn btn-primary" onClick={() => void install(v.id)}>
-        <ArrowDownToLine className="size-3.5" /> Install
+        <ArrowDownToLine className="size-3.5" /> {t.common.install}
       </button>
     );
   else if (update && running)
     action = (
-      <button type="button" className={cn("btn", v.queued && "border-accent/50 text-accent")} title="Abyss installs the update as soon as you close the app" onClick={() => toggleQueued(v.id)}>
-        <BellRing className="size-3.5" /> {v.queued ? "Updates on close" : "Update on close"}
+      <button type="button" className={cn("btn", v.queued && "border-accent/50 text-accent")} title={t.common.updateOnCloseHint} onClick={() => toggleQueued(v.id)}>
+        <BellRing className="size-3.5" /> {v.queued ? t.common.updatesOnClose : t.common.updateOnClose}
       </button>
     );
   else if (update)
     action = (
       <>
         <button type="button" className="btn" onClick={() => void launch(v.id)}>
-          Open
+          {t.common.open}
         </button>
         <button type="button" className="btn btn-primary" onClick={() => void install(v.id)}>
-          <RefreshCw className="size-3.5" /> Update
+          <RefreshCw className="size-3.5" /> {t.common.update}
         </button>
       </>
     );
   else
     action = (
       <button type="button" className="btn btn-primary" onClick={() => void launch(v.id)}>
-        <Play className="size-3.5 fill-current" /> Open
+        <Play className="size-3.5 fill-current" /> {t.common.open}
       </button>
     );
 
@@ -92,16 +94,16 @@ export function AppCard({ view: v }: { view: AppView }) {
             <h3 className="truncate text-[14px] font-semibold text-ink">{v.name}</h3>
             {running && (
               <span className="flex items-center gap-1 text-[11px] text-emerald">
-                <span className="size-1.5 rounded-full bg-emerald" /> Running
+                <span className="size-1.5 rounded-full bg-emerald" /> {t.card.running}
               </span>
             )}
           </div>
-          <p className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">{v.kind === "local" ? "Your app" : v.app?.tagline}</p>
+          <p className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">{v.kind === "local" ? t.card.yourApp : v.app?.tagline}</p>
           <div className="mt-1.5 flex flex-wrap gap-1">
             {v.app?.category && <PillBadge>{v.app.category}</PillBadge>}
-            {v.app?.status === "beta" && <PillBadge tone="amber">Beta</PillBadge>}
-            {v.kind === "local" && <PillBadge>Local</PillBadge>}
-            {update && <PillBadge tone="accent">Update</PillBadge>}
+            {v.app?.status === "beta" && <PillBadge tone="amber">{t.card.beta}</PillBadge>}
+            {v.kind === "local" && <PillBadge>{t.card.local}</PillBadge>}
+            {update && <PillBadge tone="accent">{t.common.update}</PillBadge>}
           </div>
         </div>
       </div>
@@ -111,7 +113,7 @@ export function AppCard({ view: v }: { view: AppView }) {
         ) : (
           <div className="flex items-center justify-between gap-2">
             <span className={cn("truncate text-[11.5px] text-ink-faint tabular-nums", v.kind === "local" && "font-mono")} title={v.local?.path}>
-              {versionLine(v)}
+              {versionLine(v, t.card)}
             </span>
             <div className="flex shrink-0 items-center gap-1.5">
               {action}

@@ -2,9 +2,10 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect } from "react";
 import { AppDetails } from "./components/AppDetails";
 import { handleHotkey, Rail } from "./components/Rail";
-import { LOCAL_APP_FILTERS } from "./components/SlotCard";
+import { LOCAL_APP_EXTENSIONS } from "./components/SlotCard";
 import { Toasts } from "./components/Toasts";
 import { TopBar } from "./components/TopBar";
+import { tr } from "./i18n";
 import { inTauri } from "./lib/ipc";
 import { AppsPage } from "./pages/AppsPage";
 import { BlenderPage, ZIP_JOB } from "./pages/BlenderPage";
@@ -15,7 +16,7 @@ import { useLauncher } from "./stores/launcherStore";
 import { scheduleSelfUpdateCheck } from "./stores/selfUpdateStore";
 import { toast, useUiStore } from "./stores/uiStore";
 
-const PROGRAM_EXT = new Set(LOCAL_APP_FILTERS[0].extensions);
+const PROGRAM_EXT = new Set(LOCAL_APP_EXTENSIONS);
 const ext = (p: string) => p.split(".").pop()?.toLowerCase() ?? "";
 
 /** Dropped files: add-on zips install into Blender, programs become local apps. */
@@ -28,7 +29,7 @@ function onDrop(paths: string[]) {
       useUiStore.getState().setPage("apps");
       void useLauncher.getState().addLocalApp(p);
     } else {
-      toast("error", `Drop a program (.exe, .bat, .lnk…) or a Blender add-on .zip, not ${p.split(/[\\/]/).pop()}`);
+      toast("error", tr().drop.unsupported(p.split(/[\\/]/).pop() ?? p));
     }
   }
 }

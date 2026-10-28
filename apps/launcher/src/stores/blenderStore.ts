@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { tr } from "../i18n";
 import { ipc } from "../lib/ipc";
 import type { AddonOutcome, BlenderInstall } from "../lib/types";
 import { toast } from "./uiStore";
@@ -18,7 +19,7 @@ interface BlenderState {
 function report(outcomes: AddonOutcome[], installs: BlenderInstall[]) {
   for (const o of outcomes.filter((o) => !o.ok)) {
     const b = installs.find((i) => i.executable === o.executable);
-    toast("error", `Blender ${b?.version ?? o.executable}: ${o.error ?? "failed"}`);
+    toast("error", tr().toasts.blenderFailed(b?.version ?? o.executable, o.error));
   }
 }
 
@@ -37,7 +38,7 @@ export const useBlender = create<BlenderState>()((set, get) => ({
       const kept = get().targets.filter((t) => known.has(t));
       set({ installs, scanned: true, targets: kept.length ? kept : installs.filter((i) => i.supported).map((i) => i.executable) });
     } catch (e) {
-      toast("error", `Blender scan failed: ${e}`);
+      toast("error", tr().toasts.blenderScanFailed(String(e)));
     } finally {
       set({ scanning: false });
     }
@@ -49,7 +50,7 @@ export const useBlender = create<BlenderState>()((set, get) => ({
 
   async install(key, source) {
     const targets = get().targets;
-    if (!targets.length) return toast("error", "Pick at least one Blender version");
+    if (!targets.length) return toast("error", tr().toasts.pickBlender);
     try {
       report(await ipc.addonInstall(key, source, targets), get().installs);
     } catch {

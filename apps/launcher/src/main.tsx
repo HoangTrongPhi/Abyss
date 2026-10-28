@@ -3,11 +3,13 @@ import "./dev/mockBackend";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { initLanguage } from "./i18n";
 import { appearance } from "./stores/appearance";
 import "./styles.css";
 
-// Saved theme and fonts, before the first paint.
+// Saved theme, fonts and language, before the first paint.
 appearance.init();
+initLanguage();
 
 // Block the webview's default context menu outside text fields (desktop-app feel).
 window.addEventListener("contextmenu", (e) => {

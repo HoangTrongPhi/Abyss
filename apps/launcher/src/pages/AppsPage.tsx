@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { AppCard } from "../components/AppCard";
 import { SlotCard } from "../components/SlotCard";
+import { useT } from "../i18n";
 import { useAppViews, useFreeSlots, useUpdateCount, type AppView } from "../stores/launcherStore";
 import { useUiStore, type AppFilter } from "../stores/uiStore";
 
@@ -19,6 +20,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 }
 
 function Hero({ installed, updates }: { installed: number; updates: number }) {
+  const t = useT().apps;
   return (
     <div className="relative overflow-hidden rounded-2xl border border-edge bg-panel px-6 py-5">
       <div
@@ -30,8 +32,7 @@ function Hero({ installed, updates }: { installed: number; updates: number }) {
         <div>
           <div className="text-[18px] font-semibold text-ink">Abyss</div>
           <div className="text-[12.5px] text-ink-muted">
-            {installed} app{installed === 1 ? "" : "s"} installed
-            {updates > 0 ? ` · ${updates} update${updates > 1 ? "s" : ""} waiting` : " · everything up to date"}
+            {t.installedCount(installed)} · {updates > 0 ? t.updatesWaiting(updates) : t.allCurrent}
           </div>
         </div>
       </div>
@@ -42,6 +43,7 @@ function Hero({ installed, updates }: { installed: number; updates: number }) {
 const matches = (v: AppView, q: string) => !q || [v.name, v.app?.tagline, v.app?.category].some((t) => t?.toLowerCase().includes(q));
 
 export function AppsPage() {
+  const t = useT().apps;
   const views = useAppViews();
   const freeSlots = useFreeSlots();
   const updates = useUpdateCount();
@@ -63,43 +65,43 @@ export function AppsPage() {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: "All" },
-            { value: "installed", label: "Installed" },
-            { value: "updates", label: `Updates${updates ? ` (${updates})` : ""}` },
+            { value: "all", label: t.filterAll },
+            { value: "installed", label: t.filterInstalled },
+            { value: "updates", label: t.filterUpdates(updates) },
           ]}
         />
       </div>
 
       {filter === "updates" ? (
         withUpdates.length ? (
-          <Section title="Updates" count={withUpdates.length}>
+          <Section title={t.sectionUpdates} count={withUpdates.length}>
             {withUpdates.map((v) => <AppCard key={v.id} view={v} />)}
           </Section>
         ) : (
-          <EmptyState icon={<Search className="size-4" />} title="No updates">
-            Every installed app is on its latest version.
+          <EmptyState icon={<Search className="size-4" />} title={t.noUpdates}>
+            {t.noUpdatesHint}
           </EmptyState>
         )
       ) : (
         <>
           {installed.length > 0 && (
-            <Section title="Installed" count={installed.length}>
+            <Section title={t.sectionInstalled} count={installed.length}>
               {installed.map((v) => <AppCard key={v.id} view={v} />)}
             </Section>
           )}
           {filter === "all" && available.length > 0 && (
-            <Section title="Available" count={available.length}>
+            <Section title={t.sectionAvailable} count={available.length}>
               {available.map((v) => <AppCard key={v.id} view={v} />)}
             </Section>
           )}
           {filter === "all" && !search && (
-            <Section title="Coming soon & free slots">
+            <Section title={t.sectionSoon}>
               {soon.map((v) => <AppCard key={v.id} view={v} />)}
               {Array.from({ length: freeSlots }, (_, i) => <SlotCard key={i} index={i + 1} />)}
             </Section>
           )}
           {search && !installed.length && !available.length && (
-            <EmptyState icon={<Search className="size-4" />} title={`Nothing matches “${search}”`} />
+            <EmptyState icon={<Search className="size-4" />} title={t.noMatch(search)} />
           )}
         </>
       )}
