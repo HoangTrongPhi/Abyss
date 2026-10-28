@@ -48,6 +48,11 @@ cargo test --manifest-path apps/launcher/src-tauri/Cargo.toml -- --ignored --noc
   the NSIS installer, checks it against `SHA256SUMS.txt` and the app's signing key, and runs it
   silently (per-user, no admin). Updates of a running app wait until it closes ("Update on close").
   Detection uses the installer's Uninstall registry entry, so copies installed by hand count too.
+- **Install location** — a new app goes into `<folder>\<product>`: `%LOCALAPPDATA%` unless *Settings →
+  App installs* picks another folder. The install dialog (before each new install, can be turned off)
+  shows that folder, its free space and whether Abyss can write there, and asks about the desktop
+  shortcut. The folder reaches the installer as NSIS `/D=`; updates run with `/UPDATE`, so they stay
+  where the app is and leave its shortcuts alone.
 - **Launch** — apps start detached with `ABYSS=1` in their environment; apps from the template then
   leave update prompts to Abyss.
 - **Blender add-ons** — Blender installs are found like Poseidon finds them; add-ons (legacy zips and
@@ -58,8 +63,15 @@ cargo test --manifest-path apps/launcher/src-tauri/Cargo.toml -- --ignored --noc
   bell of the top bar, with its Update button; while Abyss sits in the tray or behind other windows,
   a Windows notification goes with it (*Settings → Behaviour*). The tray tooltip counts waiting updates.
 - **Language & look** — English / Tiếng Việt (*Settings → Language*; the first start follows Windows),
-  dark / light / system theme (also the sun/moon button in the top bar), fonts and UI size. UI texts
-  live in `apps/launcher/src/i18n/` (`en.ts` defines the keys, `vi.ts` must match them); the tray
-  menu and job messages come from `src-tauri/src/i18n.rs`.
+  dark / light / system theme (also the sun/moon button in the top bar), fonts, UI size and effects.
+  UI texts live in `apps/launcher/src/i18n/` (`en.ts` defines the keys, `vi.ts` must match them); the
+  tray menu and job messages come from `src-tauri/src/i18n.rs`.
+- **Effects** — a deep-water backdrop, a lit hero, cards that catch the pointer, pages and cards that
+  rise in, moving progress bars. Transform and opacity only, paused while the window is hidden;
+  *Settings → Appearance → Effects*: Full / Calm (nothing loops) / Off. Windows' "Animation effects"
+  off means Calm. The `.fx-*` classes are in `packages/abyss-ui/theme.css`, the launcher's own in
+  `apps/launcher/src/styles.css`.
+- **About & contact** — the person icon at the bottom of the rail, as in Poseidon (author card in
+  `apps/launcher/src/lib/author.ts`).
 
 Releasing: [docs/RELEASE_STANDARD.md](docs/RELEASE_STANDARD.md).

@@ -21,7 +21,7 @@ export function TopBar() {
   const title = t.pages[page];
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel/70 px-5">
+    <header className="relative z-10 flex h-14 shrink-0 items-center gap-3 border-b border-edge bg-panel/70 px-5">
       <div className="flex min-w-0 items-baseline gap-2">
         <h1 className="text-[15px] font-semibold whitespace-nowrap text-ink">{title.title}</h1>
         <span className="hidden truncate text-[12px] text-ink-faint xl:inline">{title.description}</span>

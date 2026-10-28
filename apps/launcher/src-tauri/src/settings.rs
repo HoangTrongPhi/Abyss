@@ -21,12 +21,28 @@ pub struct Settings {
     pub notify: bool,
     /// UI language (`en`, `vi`), mirrored here for the tray menu and job messages.
     pub language: String,
+    /// Folder new apps install into (each in `<folder>\<product>`); `None`: `%LOCALAPPDATA%`, the installers' own default.
+    pub install_root: Option<PathBuf>,
+    /// Show the install dialog (folder, shortcut) before each new install.
+    pub ask_install_dir: bool,
+    /// Keep the desktop shortcut the installers make.
+    pub desktop_shortcut: bool,
     pub local_apps: Vec<LocalApp>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { close_to_tray: true, auto_check: true, catalog_url: None, notify: true, language: "en".into(), local_apps: Vec::new() }
+        Settings {
+            close_to_tray: true,
+            auto_check: true,
+            catalog_url: None,
+            notify: true,
+            language: "en".into(),
+            install_root: None,
+            ask_install_dir: true,
+            desktop_shortcut: true,
+            local_apps: Vec::new(),
+        }
     }
 }
 
@@ -125,5 +141,6 @@ mod tests {
         assert!(!s.close_to_tray);
         assert!(s.notify);
         assert_eq!(s.language, "en");
+        assert!(s.install_root.is_none() && s.ask_install_dir && s.desktop_shortcut);
     }
 }

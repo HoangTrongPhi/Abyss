@@ -1,5 +1,5 @@
 import { RailButton } from "@abyss/ui";
-import { Blocks, LayoutGrid, RefreshCcw, Settings2 } from "lucide-react";
+import { Blocks, LayoutGrid, RefreshCcw, Settings2, UserRound } from "lucide-react";
 import { useT } from "../i18n";
 import { useUpdateCount } from "../stores/launcherStore";
 import { useSelfUpdate } from "../stores/selfUpdateStore";
@@ -15,12 +15,13 @@ export function Rail() {
   const t = useT();
   const page = useUiStore((s) => s.page);
   const setPage = useUiStore((s) => s.setPage);
+  const setAboutOpen = useUiStore((s) => s.setAboutOpen);
   const updates = useUpdateCount();
   const selfUpdate = useSelfUpdate((s) => s.phase === "available");
 
   return (
-    <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-edge bg-panel py-3">
-      <img src="/abyss-icon.svg" alt="Abyss" className="mb-3 size-8" draggable={false} />
+    <nav className="relative z-10 flex w-14 shrink-0 flex-col items-center gap-1 border-r border-edge bg-panel py-3">
+      <img src="/abyss-icon.svg" alt="Abyss" className="mb-3 size-8 transition-transform duration-500 hover:rotate-[-8deg] hover:scale-110" draggable={false} />
       {PAGES.map((p) => (
         <RailButton
           key={p.id}
@@ -36,6 +37,9 @@ export function Rail() {
       <div className="flex-1" />
       <RailButton label={t.pages.settings.title} shortcut="Ctrl+," active={page === "settings"} onClick={() => setPage("settings")}>
         <Settings2 className="size-[18px]" strokeWidth={1.75} />
+      </RailButton>
+      <RailButton label={t.about.open} onClick={() => setAboutOpen(true)}>
+        <UserRound className="size-[18px]" strokeWidth={1.75} />
       </RailButton>
     </nav>
   );

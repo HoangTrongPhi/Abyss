@@ -154,7 +154,8 @@ export function NotificationBell() {
         title={t.notifications.open}
         onClick={toggle}
       >
-        <Bell className={cn("size-[17px]", unread > 0 && "text-ink")} strokeWidth={1.75} />
+        {/* Keyed by the count: a new notice swings the bell once. */}
+        <Bell key={unread} className={cn("size-[17px]", unread > 0 && "fx-enter abyss-ring text-ink")} strokeWidth={1.75} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rose px-1 text-[10px] font-semibold text-white tabular-nums ring-2 ring-panel">
             {unread > 9 ? "9+" : unread}

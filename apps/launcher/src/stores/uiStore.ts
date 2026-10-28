@@ -19,6 +19,11 @@ interface UiState {
   /** App whose details dialog is open. */
   detailsId: string | null;
   setDetailsId: (id: string | null) => void;
+  /** App whose install dialog (folder, shortcut) is open. */
+  installId: string | null;
+  setInstallId: (id: string | null) => void;
+  aboutOpen: boolean;
+  setAboutOpen: (open: boolean) => void;
   toasts: Toast[];
   dismissToast: (id: number) => void;
 }
@@ -32,6 +37,10 @@ export const useUiStore = create<UiState>()((set) => ({
   setFilter: (filter) => set({ filter }),
   detailsId: null,
   setDetailsId: (detailsId) => set({ detailsId }),
+  installId: null,
+  setInstallId: (installId) => set({ installId }),
+  aboutOpen: false,
+  setAboutOpen: (aboutOpen) => set({ aboutOpen }),
   toasts: [],
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));

@@ -1,8 +1,9 @@
 import { AppearanceSettings, Checkbox, FieldLabel, GlassCard, PathText, PillBadge, TextField, cn } from "@abyss/ui";
-import { FolderOpen, Languages } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { FolderOpen, HardDrive, Languages, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LANGS, useLang, useT } from "../i18n";
-import { ipc } from "../lib/ipc";
+import type { Settings } from "../lib/types";
 import { useAppearance } from "../stores/appearance";
 import { useLauncher } from "../stores/launcherStore";
 
@@ -35,11 +36,49 @@ function LanguagePicker() {
   );
 }
 
+/** Where new apps go, and whether to ask each time. Updates are not affected: they install in place. */
+function InstallSettings({ settings }: { settings: Settings }) {
+  const t = useT().settings;
+  const defaultRoot = useLauncher((s) => s.info?.defaultInstallRoot ?? "");
+  const save = useLauncher((s) => s.saveSettings);
+  const root = settings.installRoot ?? defaultRoot;
+
+  const pick = async () => {
+    const picked = await open({ directory: true, multiple: false, title: t.installRoot, defaultPath: root || undefined });
+    if (typeof picked === "string") void save({ installRoot: picked });
+  };
+
+  return (
+    <div className="grid gap-3 p-4">
+      <div>
+        <FieldLabel>{t.installRoot}</FieldLabel>
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md border border-edge bg-canvas/70 px-2">
+            <HardDrive className="size-3.5 shrink-0 text-ink-faint" />
+            <PathText path={root} className="min-w-0 flex-1 text-left text-ink" />
+            {!settings.installRoot && <PillBadge>{t.defaultRoot}</PillBadge>}
+          </div>
+          {settings.installRoot && (
+            <button type="button" className="btn" onClick={() => void save({ installRoot: null })}>
+              <RotateCcw className="size-3.5" /> {t.resetRoot}
+            </button>
+          )}
+          <button type="button" className="btn" onClick={() => void pick()}>
+            <FolderOpen className="size-3.5" /> {t.change}
+          </button>
+        </div>
+        <p className="mt-1 text-[11px] text-ink-faint">{t.installRootHint(`${root.replace(/[\\/]+$/, "")}\\Poseidon`)}</p>
+      </div>
+      <Checkbox checked={settings.askInstallDir} onChange={(askInstallDir) => void save({ askInstallDir })} label={t.askInstallDir} hint={t.askInstallDirHint} />
+      <Checkbox checked={settings.desktopShortcut} onChange={(desktopShortcut) => void save({ desktopShortcut })} label={t.desktopShortcut} hint={t.desktopShortcutHint} />
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const t = useT();
   const settings = useLauncher((s) => s.settings);
   const catalog = useLauncher((s) => s.catalog);
-  const info = useLauncher((s) => s.info);
   const save = useLauncher((s) => s.saveSettings);
   const refreshCatalog = useLauncher((s) => s.refreshCatalog);
   const [url, setUrl] = useState(settings?.catalogUrl ?? "");
@@ -64,6 +103,10 @@ export function SettingsPage() {
         <div className="p-4">
           <AppearanceSettings useAppearance={useAppearance} labels={t.appearance} />
         </div>
+      </GlassCard>
+
+      <GlassCard title={t.settings.installs}>
+        <InstallSettings settings={settings} />
       </GlassCard>
 
       <GlassCard title={t.settings.behaviour}>
@@ -115,22 +158,6 @@ export function SettingsPage() {
             </div>
             <p className="mt-1 text-[11px] text-ink-faint">{t.settings.customHint}</p>
           </div>
-        </div>
-      </GlassCard>
-
-      <GlassCard title={t.settings.about}>
-        <div className="grid gap-2 p-4 text-[12.5px] text-ink-muted">
-          <div>
-            Abyss v{info?.version} · © 2026 Hoàng Trọng Phi
-          </div>
-          {info && (
-            <div className="flex items-center gap-2">
-              <PathText path={info.dataDir} className="min-w-0 flex-1 text-ink-faint" />
-              <button type="button" className="btn" onClick={() => void ipc.revealPath(info.dataDir).catch(() => {})}>
-                <FolderOpen className="size-3.5" /> {t.settings.dataFolder}
-              </button>
-            </div>
-          )}
         </div>
       </GlassCard>
     </div>

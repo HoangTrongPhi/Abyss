@@ -14,7 +14,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
         {title}
         {count !== undefined && <span className="font-normal text-ink-faint">{count}</span>}
       </h2>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">{children}</div>
+      <div className="fx-stagger grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">{children}</div>
     </section>
   );
 }
@@ -23,12 +23,16 @@ function Hero({ installed, updates }: { installed: number; updates: number }) {
   const t = useT().apps;
   return (
     <div className="relative overflow-hidden rounded-2xl border border-edge bg-panel px-6 py-5">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-90"
-        style={{ background: "radial-gradient(ellipse 60% 120% at 85% 120%, rgba(94,234,212,0.18), transparent 60%), radial-gradient(ellipse 50% 90% at 100% 0%, rgba(59,130,246,0.16), transparent 60%)" }}
-      />
+      <div className="pointer-events-none absolute inset-0 [contain:strict]" aria-hidden="true">
+        <div className="abyss-hero-grid absolute inset-0" />
+        <div className="fx-loop abyss-hero-blob abyss-hero-blob-a" />
+        <div className="fx-loop abyss-hero-blob abyss-hero-blob-b" />
+      </div>
       <div className="relative flex items-center gap-5">
-        <img src="/abyss-icon.svg" alt="" className="size-14" draggable={false} />
+        <div className="relative size-14 shrink-0">
+          <span className="fx-loop abyss-halo pointer-events-none absolute -inset-4 rounded-full" aria-hidden="true" />
+          <img src="/abyss-icon.svg" alt="" className="relative size-14" draggable={false} />
+        </div>
         <div>
           <div className="text-[18px] font-semibold text-ink">Abyss</div>
           <div className="text-[12.5px] text-ink-muted">

@@ -1,7 +1,7 @@
-import { Checkbox, EmptyState, GlassCard, PathText, PillBadge, cn } from "@abyss/ui";
+import { Checkbox, EmptyState, GlassCard, PathText, PillBadge, cn, spotlight } from "@abyss/ui";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Blocks, FileArchive, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { JobProgress, jobBusy } from "../components/JobProgress";
 import { tr, useT } from "../i18n";
 import type { CatalogAddon } from "../lib/types";
@@ -37,7 +37,7 @@ function AddonCard({ addon }: { addon: CatalogAddon }) {
   const comingSoon = addon.status === "coming_soon";
 
   return (
-    <article className={cn("flex min-h-[150px] flex-col rounded-xl border border-edge bg-panel p-4", comingSoon && "opacity-75")}>
+    <article className={cn("fx-card flex min-h-[150px] flex-col overflow-hidden rounded-xl border border-edge bg-panel p-4 hover:border-edge-strong", comingSoon && "opacity-75")} style={{ "--fx-tint": "var(--color-amber)" } as CSSProperties} onPointerMove={spotlight}>
       <div className="flex items-start gap-3">
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-amber/12 text-amber ring-1 ring-amber/25">
           <Blocks className="size-5" strokeWidth={1.75} />
@@ -149,7 +149,7 @@ export function BlenderPage() {
         </div>
       </div>
       <p className="-mt-3 text-[12px] text-ink-faint">{t.note}</p>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+      <div className="fx-stagger grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
         {listed.map((a) => <AddonCard key={a.id} addon={a} />)}
         {Array.from({ length: Math.max(1, slots) }, (_, i) => <AddonSlot key={i} index={i + 1} />)}
       </div>

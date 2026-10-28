@@ -1,5 +1,5 @@
 import type { UseBoundStore, StoreApi } from "zustand";
-import { MONO_FONTS, UI_FONTS, UI_SCALES, type AppearanceState, type FontOption, type ThemeMode } from "./appearance";
+import { EFFECTS_LEVELS, MONO_FONTS, UI_FONTS, UI_SCALES, type AppearanceState, type EffectsLevel, type FontOption, type ThemeMode } from "./appearance";
 import { cn } from "./cn";
 import { FieldLabel, Segmented } from "./Controls";
 import { Monitor, Moon, RotateCcw, Sun } from "./icons";
@@ -13,6 +13,12 @@ export interface AppearanceLabels {
   uiFont: string;
   monoFont: string;
   scale: string;
+  effects: string;
+  fxFull: string;
+  fxReduced: string;
+  fxOff: string;
+  /** Under the effects switch. */
+  fxHint: string;
   reset: string;
   /** Each interface font is previewed with this text (keep diacritics, to show coverage). */
   sample: string;
@@ -26,11 +32,17 @@ export const APPEARANCE_LABELS_EN: AppearanceLabels = {
   uiFont: "Interface font",
   monoFont: "Code & path font",
   scale: "Interface size",
+  effects: "Effects",
+  fxFull: "Full",
+  fxReduced: "Calm",
+  fxOff: "Off",
+  fxHint: "Calm keeps the background still; Off also drops entrance animations and hover lights. Windows' “Animation effects” off means Calm.",
   reset: "Reset",
   sample: "Abyss — Tiếng Việt có dấu",
 };
 
 const THEME_ICONS: Record<ThemeMode, typeof Sun> = { dark: Moon, light: Sun, system: Monitor };
+const FX_LABEL: Record<EffectsLevel, "fxFull" | "fxReduced" | "fxOff"> = { full: "fxFull", reduced: "fxReduced", off: "fxOff" };
 
 /** One row per font, each previewed in its own face. */
 function FontList({ fonts, value, onChange, sample, mono }: { fonts: FontOption[]; value: string; onChange: (id: string) => void; sample: string; mono?: boolean }) {
@@ -58,7 +70,7 @@ function FontList({ fonts, value, onChange, sample, mono }: { fonts: FontOption[
   );
 }
 
-/** Theme / font / scale controls bound to an app's `createAppearance(...).useAppearance` store. */
+/** Theme / font / scale / effects controls bound to an app's `createAppearance(...).useAppearance` store. */
 export function AppearanceSettings({ useAppearance, labels = APPEARANCE_LABELS_EN }: { useAppearance: UseBoundStore<StoreApi<AppearanceState>>; labels?: AppearanceLabels }) {
   const s = useAppearance();
   return (
@@ -94,7 +106,7 @@ export function AppearanceSettings({ useAppearance, labels = APPEARANCE_LABELS_E
         <FieldLabel>{labels.monoFont}</FieldLabel>
         <FontList fonts={MONO_FONTS} value={s.monoFont} onChange={s.setMonoFont} sample="C:\Apps\Abyss\catalog.json → v1.0.2" mono />
       </div>
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <div>
           <FieldLabel>{labels.scale}</FieldLabel>
           <Segmented
@@ -103,9 +115,14 @@ export function AppearanceSettings({ useAppearance, labels = APPEARANCE_LABELS_E
             options={UI_SCALES.map((x) => ({ value: String(x), label: `${Math.round(x * 100)}%` }))}
           />
         </div>
-        <button type="button" className="btn" onClick={s.reset}>
+        <div>
+          <FieldLabel>{labels.effects}</FieldLabel>
+          <Segmented<EffectsLevel> value={s.effects} onChange={s.setEffects} options={EFFECTS_LEVELS.map((x) => ({ value: x, label: labels[FX_LABEL[x]] }))} />
+        </div>
+        <button type="button" className="btn ml-auto" onClick={s.reset}>
           <RotateCcw className="size-3.5" /> {labels.reset}
         </button>
+        <p className="basis-full text-[11px] text-ink-faint">{labels.fxHint}</p>
       </div>
     </div>
   );

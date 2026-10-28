@@ -136,6 +136,51 @@ pub fn open_url(url: &str) -> Result<(), String> {
     quiet_command("rundll32").arg("url.dll,FileProtocolHandler").arg(url).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
+/// Where the per-user NSIS installers put an app when told nothing: `%LOCALAPPDATA%\<product>`.
+pub fn default_install_root() -> PathBuf {
+    std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(std::env::temp_dir)
+}
+
+/// Free bytes on the drive holding `path` (it need not exist yet).
+pub fn free_space(path: &Path) -> Option<u64> {
+    let key = path_key(path);
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    disks
+        .list()
+        .iter()
+        .filter(|d| key.starts_with(&path_key(d.mount_point())))
+        .max_by_key(|d| d.mount_point().as_os_str().len())
+        .map(|d| d.available_space())
+}
+
+/// Whether the user can create files in `dir`, or (when it does not exist yet) in its nearest existing parent.
+pub fn writable(dir: &Path) -> bool {
+    let Some(existing) = dir.ancestors().find(|p| p.is_dir()) else { return false };
+    let probe = existing.join(format!(".abyss-write-test-{}", std::process::id()));
+    match std::fs::OpenOptions::new().write(true).create_new(true).open(&probe) {
+        Ok(_) => std::fs::remove_file(&probe).is_ok(),
+        Err(_) => false,
+    }
+}
+
+/// The user's desktop folder (it may live in OneDrive).
+#[cfg(windows)]
+pub fn desktop_dir() -> Option<PathBuf> {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+    RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")
+        .and_then(|k| k.get_value::<String, _>("Desktop"))
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("USERPROFILE").map(|h| PathBuf::from(h).join("Desktop")))
+}
+
+#[cfg(not(windows))]
+pub fn desktop_dir() -> Option<PathBuf> {
+    None
+}
+
 /// Split `"C:\Program Files\x\uninstall.exe" /arg` into program and arguments.
 pub fn split_command_line(cmd: &str) -> (String, Vec<String>) {
     let s = cmd.trim();
@@ -164,6 +209,14 @@ mod tests {
         assert_eq!(p, r"C:\Users\me\AppData\Local\Poseidon\uninstall.exe");
         assert_eq!(a, vec!["/S"]);
         assert_eq!(split_command_line(r"C:\x\u.exe").0, r"C:\x\u.exe");
+    }
+
+    #[test]
+    fn install_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(writable(&dir.path().join("not").join("yet")));
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0, "the probe cleans up");
+        assert!(free_space(dir.path()).is_some_and(|f| f > 0));
     }
 
     /// On a machine with Poseidon installed (the author's): `cargo test -- --ignored finds_poseidon --nocapture`.

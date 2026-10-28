@@ -14,7 +14,7 @@ export function Toasts() {
       {toasts.map((toast) => {
         const Icon = ICONS[toast.tone];
         return (
-          <div key={toast.id} className="pointer-events-auto flex animate-pop-in items-start gap-2.5 rounded-lg border border-edge-strong bg-panel-raised px-3 py-2.5 shadow-xl">
+          <div key={toast.id} className="pointer-events-auto flex animate-toast-in items-start gap-2.5 rounded-lg border border-edge-strong bg-panel-raised px-3 py-2.5 shadow-xl">
             <Icon className={cn("mt-0.5 size-4 shrink-0", toast.tone === "success" ? "text-emerald" : toast.tone === "error" ? "text-rose" : "text-accent")} />
             <p className="min-w-0 flex-1 text-[12.5px] break-words text-ink select-text">{toast.text}</p>
             <button type="button" className="text-ink-faint hover:text-ink" aria-label={t.common.dismiss} onClick={() => dismiss(toast.id)}>

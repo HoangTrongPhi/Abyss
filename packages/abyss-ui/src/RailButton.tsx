@@ -21,7 +21,7 @@ export function RailButton({ active, label, shortcut, badge, onClick, children }
         active ? "bg-accent/14 text-accent" : "text-ink-faint hover:bg-tint/5 hover:text-ink",
       )}
     >
-      {active && <span className="absolute -left-2.5 h-5 w-[3px] rounded-r-full bg-accent" />}
+      {active && <span className="fx-enter absolute -left-2.5 h-5 w-[3px] animate-rail-in rounded-r-full bg-accent" />}
       {children}
       {!!badge && (
         <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white tabular-nums">

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { InputHTMLAttributes, PointerEvent, ReactNode } from "react";
 import { cn } from "./cn";
 
 export function Checkbox({ checked, onChange, label, hint, disabled }: {
@@ -64,16 +64,26 @@ export function FieldLabel({ children }: { children: ReactNode }) {
   return <div className="mb-1 text-[11px] font-medium tracking-wide text-ink-faint uppercase">{children}</div>;
 }
 
+/** Determinate bars carry a moving sheen; indeterminate ones a sliding segment (compositor-only). */
 export function ProgressBar({ value, total, indeterminate }: { value: number; total: number; indeterminate?: boolean }) {
   const pct = total > 0 ? Math.min(100, (value / total) * 100) : 0;
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-tint/6">
-      <div
-        className={cn("h-full rounded-full bg-accent transition-[width] duration-300", indeterminate && "w-1/3 animate-pulse")}
-        style={indeterminate ? undefined : { width: `${pct}%` }}
-      />
+    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-tint/6">
+      {indeterminate ? (
+        <div className="fx-indeterminate absolute inset-y-0 left-0 w-1/3 rounded-full bg-accent" />
+      ) : (
+        <div className="fx-sheen relative h-full overflow-hidden rounded-full bg-accent transition-[width] duration-300" style={{ width: `${pct}%` }} />
+      )}
     </div>
   );
+}
+
+/** `onPointerMove` of a `.fx-card`: its hover light follows the pointer. */
+export function spotlight(e: PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--fx-x", `${e.clientX - r.left}px`);
+  el.style.setProperty("--fx-y", `${e.clientY - r.top}px`);
 }
 
 /** A path shown as `…/folder/name` with the full path on hover. */

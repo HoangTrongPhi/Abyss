@@ -53,6 +53,14 @@ impl Lang {
         }
     }
 
+    /// A chosen install folder Abyss may not write to (Program Files without admin, a read-only drive).
+    pub fn cannot_write(self, dir: &str) -> String {
+        match self {
+            Lang::En => format!("Abyss cannot write to {dir}; pick a folder of your own (Program Files needs administrator rights)"),
+            Lang::Vi => format!("Abyss không ghi được vào {dir}; hãy chọn một thư mục của bạn (Program Files cần quyền quản trị)"),
+        }
+    }
+
     pub fn installed(self, name: &str, version: &str) -> String {
         match self {
             Lang::En => format!("{name} v{version} installed"),

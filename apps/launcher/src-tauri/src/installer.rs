@@ -2,14 +2,14 @@
 //! progress on the app's card; one job per target at a time.
 
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Runtime};
 
-use crate::catalog::CatalogApp;
+use crate::catalog::{CatalogApp, InstallSpec};
 use crate::release::{self, CHECKSUMS_FILE};
 use crate::system::{self, Installed};
 use crate::{http, verify};
@@ -138,10 +138,20 @@ fn ensure_closed(name: &str, installed: Option<&Installed>) -> Result<(), String
     Ok(())
 }
 
-async fn run_and_wait(program: &Path, args: &[String], timeout: Duration) -> Result<i32, String> {
+/// Run `program` and wait for it. `raw_tail` goes last on the command line exactly as given (NSIS' `/D=`
+/// must not be quoted, even when the path has spaces).
+async fn run_and_wait(program: &Path, args: &[String], raw_tail: Option<String>, timeout: Duration) -> Result<i32, String> {
     let (program, args) = (program.to_path_buf(), args.to_vec());
     tokio::task::spawn_blocking(move || {
-        let mut child = system::quiet_command(&program).args(&args).spawn().map_err(|e| match e.raw_os_error() {
+        let mut cmd = system::quiet_command(&program);
+        cmd.args(&args);
+        if let Some(tail) = raw_tail {
+            #[cfg(windows)]
+            std::os::windows::process::CommandExt::raw_arg(&mut cmd, tail);
+            #[cfg(not(windows))]
+            cmd.arg(tail);
+        }
+        let mut child = cmd.spawn().map_err(|e| match e.raw_os_error() {
             Some(740) => format!("{} needs administrator rights; run it by hand", program.display()),
             _ => format!("Could not start {}: {e}", program.display()),
         })?;
@@ -161,12 +171,79 @@ async fn run_and_wait(program: &Path, args: &[String], timeout: Duration) -> Res
     .map_err(|e| e.to_string())?
 }
 
+/// Where and how a new app goes. Updates ignore it: they install over the copy that is there.
+pub struct InstallPlan {
+    /// The app gets its own folder in here: `<root>\<product>`.
+    pub root: PathBuf,
+    /// Keep the desktop shortcut the installer makes.
+    pub desktop_shortcut: bool,
+}
+
+/// `<root>\<product>`, the folder an app gets under an install root (what its installer would pick).
+pub fn app_dir(root: &Path, spec: &InstallSpec) -> PathBuf {
+    root.join(&spec.uninstall_key)
+}
+
+/// What the install dialog shows about a folder before anything is written.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallTarget {
+    pub root: PathBuf,
+    /// `<root>\<product>`.
+    pub dir: PathBuf,
+    /// `root` is `%LOCALAPPDATA%`, the installers' own default.
+    pub is_default: bool,
+    pub writable: bool,
+    /// The app's folder already has files in it (left from an earlier copy, or something else).
+    pub not_empty: bool,
+    /// Free bytes on that drive.
+    pub free: Option<u64>,
+}
+
+pub fn inspect_target(root: &Path, spec: &InstallSpec) -> InstallTarget {
+    let dir = app_dir(root, spec);
+    InstallTarget {
+        is_default: system::path_key(root) == system::path_key(&system::default_install_root()),
+        writable: root.is_absolute() && system::writable(&dir),
+        not_empty: std::fs::read_dir(&dir).is_ok_and(|mut d| d.next().is_some()),
+        free: system::free_space(root),
+        root: root.to_path_buf(),
+        dir,
+    }
+}
+
+fn check_target(dir: &Path) -> Result<(), String> {
+    if !dir.is_absolute() {
+        return Err(format!("{} is not a full path", dir.display()));
+    }
+    if !system::writable(dir) {
+        return Err(format!("Abyss cannot write to {}; pick a folder of your own (Program Files needs administrator rights)", dir.display()));
+    }
+    Ok(())
+}
+
+/// The installers always put a shortcut on the desktop; take it off again when the user said no.
+fn remove_desktop_shortcut(product: &str, since: SystemTime) {
+    let Some(lnk) = system::desktop_dir().map(|d| d.join(format!("{product}.lnk"))) else { return };
+    // Only the one this install has just written.
+    let fresh = std::fs::metadata(&lnk).and_then(|m| m.modified()).is_ok_and(|t| t + Duration::from_secs(5) >= since);
+    if fresh {
+        let _ = std::fs::remove_file(&lnk);
+    }
+}
+
 /// Install the latest release of `entry`, or update it in place.
-pub async fn install_app<R: Runtime>(r: &Reporter<R>, entry: &CatalogApp, downloads: &Path) -> Result<Installed, String> {
+pub async fn install_app<R: Runtime>(r: &Reporter<R>, entry: &CatalogApp, downloads: &Path, plan: &InstallPlan) -> Result<Installed, String> {
     let spec = entry.install.as_ref().ok_or_else(|| format!("{} cannot be installed", entry.name))?;
     r.phase(Phase::Resolving, None);
     let latest = release::fetch_latest(entry).await?;
-    ensure_closed(&entry.name, system::installed(spec).as_ref())?;
+    let current = system::installed(spec);
+    ensure_closed(&entry.name, current.as_ref())?;
+    let update = current.is_some();
+    let dir = app_dir(&plan.root, spec);
+    if !update {
+        check_target(&dir)?;
+    }
 
     let file = release::file_name(&latest.url);
     let dest = downloads.join(&entry.id).join(&file);
@@ -180,10 +257,17 @@ pub async fn install_app<R: Runtime>(r: &Reporter<R>, entry: &CatalogApp, downlo
     }
 
     r.phase(Phase::Installing, format!("v{}", latest.version));
-    let code = run_and_wait(&dest, &["/S".to_string()], Duration::from_secs(600)).await?;
+    // An update goes where the app already is (its installer remembers the folder) and leaves the user's
+    // shortcuts alone; a new install goes into the chosen folder.
+    let (args, tail) = if update { (vec!["/S".into(), "/UPDATE".into()], None) } else { (vec!["/S".into()], Some(format!("/D={}", dir.display()))) };
+    let started = SystemTime::now();
+    let code = run_and_wait(&dest, &args, tail, Duration::from_secs(600)).await?;
     let _ = tokio::fs::remove_file(&dest).await;
     if code != 0 {
         return Err(format!("The {} installer failed (exit code {code})", entry.name));
+    }
+    if !update && !plan.desktop_shortcut {
+        remove_desktop_shortcut(&spec.uninstall_key, started);
     }
     system::installed(spec).ok_or_else(|| format!("The installer finished but {} was not found afterwards", entry.name))
 }
@@ -198,7 +282,7 @@ pub async fn uninstall_app<R: Runtime>(r: &Reporter<R>, entry: &CatalogApp) -> R
         args.push("/S".into());
     }
     r.phase(Phase::Uninstalling, None);
-    run_and_wait(Path::new(&program), &args, Duration::from_secs(300)).await?;
+    run_and_wait(Path::new(&program), &args, None, Duration::from_secs(300)).await?;
     // NSIS uninstallers copy themselves to %TEMP% and return at once; wait for the registry entry to go.
     let started = Instant::now();
     while system::installed(spec).is_some() {
@@ -213,6 +297,24 @@ pub async fn uninstall_app<R: Runtime>(r: &Reporter<R>, entry: &CatalogApp) -> R
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn spec(product: &str) -> InstallSpec {
+        InstallSpec { kind: crate::catalog::InstallKind::Nsis, uninstall_key: product.into(), exe: "x.exe".into(), pubkey: None, manifest: None }
+    }
+
+    #[test]
+    fn targets() {
+        let root = tempfile::tempdir().unwrap();
+        let t = inspect_target(root.path(), &spec("Poseidon"));
+        assert_eq!(t.dir, root.path().join("Poseidon"));
+        assert!(t.writable && !t.not_empty && !t.is_default);
+        std::fs::create_dir(&t.dir).unwrap();
+        std::fs::write(t.dir.join("old.txt"), "x").unwrap();
+        assert!(inspect_target(root.path(), &spec("Poseidon")).not_empty);
+        assert!(!inspect_target(Path::new("relative"), &spec("Poseidon")).writable);
+        assert!(check_target(Path::new("relative")).is_err());
+        assert!(inspect_target(&system::default_install_root(), &spec("Poseidon")).is_default);
+    }
 
     /// Downloads Poseidon's real installer and checks it the way an install would (nothing runs):
     /// `cargo test -- --ignored poseidon_download_verifies --nocapture`

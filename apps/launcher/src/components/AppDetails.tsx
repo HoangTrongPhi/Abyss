@@ -1,5 +1,5 @@
-import { Modal, PillBadge } from "@abyss/ui";
-import { ExternalLink } from "lucide-react";
+import { Modal, PathText, PillBadge } from "@abyss/ui";
+import { ExternalLink, FolderOpen } from "lucide-react";
 import { useT } from "../i18n";
 import { formatDate } from "../lib/format";
 import { ipc } from "../lib/ipc";
@@ -60,8 +60,12 @@ export function AppDetails() {
         </p>
       </div>
       {status?.installed && (
-        <div className="mt-3 truncate font-mono text-[11px] text-ink-faint" title={status.installed.installDir}>
-          {status.installed.installDir}
+        <div className="mt-3 flex items-center gap-2 text-[11.5px]">
+          <span className="shrink-0 text-ink-faint">{t.details.location}</span>
+          <PathText path={status.installed.installDir} className="min-w-0 flex-1 text-left text-ink-muted" />
+          <button type="button" className="icon-btn" title={t.details.showFolder} aria-label={t.details.showFolder} onClick={() => void ipc.revealPath(status.installed!.installDir).catch(() => {})}>
+            <FolderOpen className="size-3.5" />
+          </button>
         </div>
       )}
     </Modal>

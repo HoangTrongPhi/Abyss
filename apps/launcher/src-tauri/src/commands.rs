@@ -3,14 +3,14 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_notification::NotificationExt;
 
 use crate::blender::{self, BlenderCache, BlenderInstall};
 use crate::catalog::{self, CatalogAddon, CatalogApp, LoadedCatalog, Source};
 use crate::i18n::Lang;
-use crate::installer::{self, Jobs, Phase, Reporter};
+use crate::installer::{self, InstallPlan, InstallTarget, Jobs, Phase, Reporter};
 use crate::release::{self, LatestRelease};
 use crate::settings::{self, LocalApp, Settings, SettingsStore};
 use crate::system::{self, Installed};
@@ -93,11 +93,13 @@ fn catalog_addon(state: &CatalogState, id: &str) -> Result<CatalogAddon, String>
 pub struct AppInfo {
     version: String,
     data_dir: PathBuf,
+    /// Where apps go when no install folder is chosen (`%LOCALAPPDATA%`).
+    default_install_root: PathBuf,
 }
 
 #[tauri::command]
 pub fn app_info(paths: State<'_, AppPaths>) -> AppInfo {
-    AppInfo { version: env!("CARGO_PKG_VERSION").into(), data_dir: paths.data.clone() }
+    AppInfo { version: env!("CARGO_PKG_VERSION").into(), data_dir: paths.data.clone(), default_install_root: system::default_install_root() }
 }
 
 #[derive(Serialize)]
@@ -170,10 +172,33 @@ pub async fn check_updates(state: State<'_, CatalogState>) -> Result<Vec<LatestI
     Ok(out)
 }
 
+/// Choices from the install dialog; what is left out comes from the settings.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct InstallOptions {
+    root: Option<PathBuf>,
+    desktop_shortcut: Option<bool>,
+}
+
+fn install_root(settings: &Settings, chosen: Option<PathBuf>) -> PathBuf {
+    chosen.or_else(|| settings.install_root.clone()).unwrap_or_else(system::default_install_root)
+}
+
+/// Where a new install of `id` would go under `root` (or the default folder), for the install dialog.
+/// Off the main thread: it probes the folder and the drives (a sleeping network drive can take a while).
+#[tauri::command]
+pub async fn install_target(id: String, root: Option<PathBuf>, settings: State<'_, SettingsStore>, state: State<'_, CatalogState>) -> Result<InstallTarget, String> {
+    let entry = catalog_app(&state, &id)?;
+    let spec = entry.install.clone().ok_or_else(|| format!("{} cannot be installed", entry.name))?;
+    let root = install_root(&settings.get(), root);
+    tokio::task::spawn_blocking(move || installer::inspect_target(&root, &spec)).await.map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub async fn install_app(
     app: AppHandle,
     id: String,
+    options: Option<InstallOptions>,
     paths: State<'_, AppPaths>,
     settings: State<'_, SettingsStore>,
     state: State<'_, CatalogState>,
@@ -181,8 +206,10 @@ pub async fn install_app(
 ) -> Result<Installed, String> {
     let entry = catalog_app(&state, &id)?;
     let _job = jobs.begin(&id)?;
+    let (s, o) = (settings.get(), options.unwrap_or_default());
+    let plan = InstallPlan { desktop_shortcut: o.desktop_shortcut.unwrap_or(s.desktop_shortcut), root: install_root(&s, o.root) };
     let r = Reporter::new(&app, &id);
-    let result = installer::install_app(&r, &entry, &paths.downloads).await;
+    let result = installer::install_app(&r, &entry, &paths.downloads, &plan).await;
     r.finish(result, |i| settings.lang().installed(&entry.name, &i.version))
 }
 
@@ -246,22 +273,37 @@ pub fn get_settings(settings: State<'_, SettingsStore>) -> Settings {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn save_settings(
     close_to_tray: bool,
     auto_check: bool,
     notify: bool,
     catalog_url: Option<String>,
+    install_root: Option<PathBuf>,
+    ask_install_dir: bool,
+    desktop_shortcut: bool,
     paths: State<'_, AppPaths>,
     settings: State<'_, SettingsStore>,
     state: State<'_, CatalogState>,
 ) -> Result<Settings, String> {
     let catalog_url = catalog_url.map(|u| u.trim().to_string()).filter(|u| !u.is_empty());
+    // The default folder is stored as "no choice", so it follows %LOCALAPPDATA%.
+    let default_root = system::path_key(&system::default_install_root());
+    let install_root = install_root.filter(|r| !r.as_os_str().is_empty() && system::path_key(r) != default_root);
+    if let Some(root) = &install_root {
+        if !root.is_absolute() || !system::writable(root) {
+            return Err(settings.lang().cannot_write(&root.display().to_string()));
+        }
+    }
     let changed = settings.update(|s| {
         let changed = s.catalog_url != catalog_url;
         s.close_to_tray = close_to_tray;
         s.auto_check = auto_check;
         s.notify = notify;
         s.catalog_url = catalog_url;
+        s.install_root = install_root;
+        s.ask_install_dir = ask_install_dir;
+        s.desktop_shortcut = desktop_shortcut;
         changed
     })?;
     if changed {

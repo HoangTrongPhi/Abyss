@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { tr } from "../i18n";
 import { inTauri, ipc, onJob, onTray } from "../lib/ipc";
-import type { AppInfo, AppStatus, CatalogApp, JobEvent, LatestInfo, LoadedCatalog, LocalApp, Settings, TrayApp } from "../lib/types";
+import type { AppInfo, AppStatus, CatalogApp, EditableSettings, InstallOptions, JobEvent, LatestInfo, LoadedCatalog, LocalApp, Settings, TrayApp } from "../lib/types";
 import { announceUpdates } from "./notificationStore";
 import { useSelfUpdate } from "./selfUpdateStore";
-import { toast } from "./uiStore";
+import { toast, useUiStore } from "./uiStore";
 
 /** Installed / running state is polled this often (cheap: registry + process list). */
 const POLL_MS = 3000;
@@ -31,14 +31,17 @@ interface LauncherState {
   refreshCatalog: () => Promise<void>;
   pollStates: () => Promise<void>;
   checkUpdates: (opts?: { silent?: boolean }) => Promise<void>;
-  install: (id: string) => Promise<void>;
+  /** Install or update now; a new app goes where `options` say, else where the settings say. */
+  install: (id: string, options?: InstallOptions) => Promise<void>;
+  /** The Install button: the install dialog first (folder, shortcut), unless Settings turned it off. */
+  requestInstall: (id: string) => void;
   uninstall: (id: string) => Promise<void>;
   launch: (id: string) => Promise<void>;
   toggleQueued: (id: string) => void;
   updateAll: () => Promise<void>;
   addLocalApp: (path: string) => Promise<void>;
   removeLocalApp: (id: string) => Promise<void>;
-  saveSettings: (patch: Partial<Pick<Settings, "closeToTray" | "autoCheck" | "notify" | "catalogUrl">>) => Promise<void>;
+  saveSettings: (patch: Partial<EditableSettings>) => Promise<void>;
 }
 
 const err = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -124,9 +127,9 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
     }
   },
 
-  async install(id) {
+  async install(id, options) {
     try {
-      const installed = await ipc.installApp(id);
+      const installed = await ipc.installApp(id, options);
       set((s) => ({
         latest: s.latest[id] ? { ...s.latest, [id]: { ...s.latest[id], updateAvailable: false } } : s.latest,
         states: { ...s.states, [id]: { id, installed, running: false } },
@@ -135,6 +138,11 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
       // Reported through the job event (toast + card).
     }
     void get().pollStates();
+  },
+
+  requestInstall(id) {
+    if (get().states[id]?.installed || !get().settings?.askInstallDir) void get().install(id);
+    else useUiStore.getState().setInstallId(id);
   },
 
   async uninstall(id) {
@@ -191,7 +199,16 @@ export const useLauncher = create<LauncherState>()((set, get) => ({
   async saveSettings(patch) {
     const cur = get().settings;
     if (!cur) return;
-    const next = { closeToTray: cur.closeToTray, autoCheck: cur.autoCheck, notify: cur.notify, catalogUrl: cur.catalogUrl, ...patch };
+    const next: EditableSettings = {
+      closeToTray: cur.closeToTray,
+      autoCheck: cur.autoCheck,
+      notify: cur.notify,
+      catalogUrl: cur.catalogUrl,
+      installRoot: cur.installRoot,
+      askInstallDir: cur.askInstallDir,
+      desktopShortcut: cur.desktopShortcut,
+      ...patch,
+    };
     try {
       const settings = await ipc.saveSettings(next);
       set({ settings });

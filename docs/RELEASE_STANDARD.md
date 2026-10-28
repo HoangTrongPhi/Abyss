@@ -9,7 +9,7 @@ A normal (not pre-release, not draft) GitHub release, tag `v<semver>`, with four
 
 | File | Made by | Read by |
 |---|---|---|
-| `<Product>_<version>_x64-setup.exe` | `tauri build` (NSIS, `installMode: currentUser`) | Abyss runs it with `/S` |
+| `<Product>_<version>_x64-setup.exe` | `tauri build` (NSIS, `installMode: currentUser`) | Abyss runs it with `/S` (+ `/D=<folder>` for a new install, `/UPDATE` for an update) |
 | `<Product>_<version>_x64-setup.exe.sig` | Tauri's signer (`TAURI_SIGNING_PRIVATE_KEY`) | the app's updater; Abyss via `latest.json` |
 | `latest.json` | `scripts/release.ps1` | the app's updater, Abyss (version, notes, installer URL, signature) |
 | `SHA256SUMS.txt` | `scripts/release.ps1` | Abyss, `validate-catalog.mjs --online` |

@@ -5,11 +5,19 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * Appearance preferences shared by every Abyss app: colour theme, UI / code fonts and UI scale.
- * Kept in the webview's localStorage under a per-app key and applied to `<html>` (`data-theme`,
+ * Appearance preferences shared by every Abyss app: colour theme, UI / code fonts, UI scale and effects.
+ * Kept in the webview's localStorage under a per-app key and applied to `<html>` (`data-theme`, `data-fx`,
  * `--font-sans`, `--font-mono`) before the first render, so an app opens in its look without a flash.
  */
 export type ThemeMode = "dark" | "light" | "system";
+
+/**
+ * Decorative motion (`theme.css`, `.fx-*` classes). `reduced` stops what loops (backgrounds stay still),
+ * `off` also drops entrance animations, hover lights and backdrops. Progress bars and spinners always run.
+ */
+export type EffectsLevel = "full" | "reduced" | "off";
+
+export const EFFECTS_LEVELS: EffectsLevel[] = ["full", "reduced", "off"];
 
 export interface FontOption {
   id: string;
@@ -39,14 +47,16 @@ export interface AppearanceState {
   uiFont: string;
   monoFont: string;
   uiScale: number;
+  effects: EffectsLevel;
   setTheme: (theme: ThemeMode) => void;
   setUiFont: (id: string) => void;
   setMonoFont: (id: string) => void;
   setUiScale: (scale: number) => void;
+  setEffects: (effects: EffectsLevel) => void;
   reset: () => void;
 }
 
-const DEFAULTS = { theme: "dark" as ThemeMode, uiFont: "segoe", monoFont: "cascadia", uiScale: 1 };
+const DEFAULTS = { theme: "dark" as ThemeMode, uiFont: "segoe", monoFont: "cascadia", uiScale: 1, effects: "full" as EffectsLevel };
 
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -55,10 +65,11 @@ export function resolvedTheme(mode: ThemeMode): "dark" | "light" {
   return mode === "system" ? (systemDark.matches ? "dark" : "light") : mode;
 }
 
-function apply(s: Pick<AppearanceState, "theme" | "uiFont" | "monoFont" | "uiScale">) {
+function apply(s: Pick<AppearanceState, "theme" | "uiFont" | "monoFont" | "uiScale" | "effects">) {
   const root = document.documentElement;
   const theme = resolvedTheme(s.theme);
   root.dataset.theme = theme;
+  root.dataset.fx = s.effects;
   root.style.colorScheme = theme;
   root.style.setProperty("--font-sans", (UI_FONTS.find((f) => f.id === s.uiFont) ?? UI_FONTS[0]).stack);
   root.style.setProperty("--font-mono", (MONO_FONTS.find((f) => f.id === s.monoFont) ?? MONO_FONTS[0]).stack);
@@ -83,6 +94,7 @@ export function createAppearance(storageKey: string) {
         setUiFont: (uiFont) => set({ uiFont }),
         setMonoFont: (monoFont) => set({ monoFont }),
         setUiScale: (uiScale) => set({ uiScale }),
+        setEffects: (effects) => set({ effects }),
         reset: () => set(DEFAULTS),
       }),
       { name: storageKey, version: 1 },
@@ -93,6 +105,10 @@ export function createAppearance(storageKey: string) {
     apply(useAppearance.getState());
     useAppearance.subscribe(apply);
     systemDark.addEventListener("change", () => useAppearance.getState().theme === "system" && apply(useAppearance.getState()));
+    // Looping effects pause while the window is hidden (in the tray, minimized).
+    const onVisibility = () => document.documentElement.toggleAttribute("data-hidden", document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    onVisibility();
   }
 
   /** Flip between light and dark (leaves `system`). */

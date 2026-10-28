@@ -1,6 +1,9 @@
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect } from "react";
+import { AboutDialog } from "./components/AboutDialog";
+import { Ambient } from "./components/Ambient";
 import { AppDetails } from "./components/AppDetails";
+import { InstallDialog } from "./components/InstallDialog";
 import { handleHotkey, Rail } from "./components/Rail";
 import { LOCAL_APP_EXTENSIONS } from "./components/SlotCard";
 import { Toasts } from "./components/Toasts";
@@ -55,9 +58,10 @@ export default function App() {
   return (
     <div className="flex h-full">
       <Rail />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <Ambient />
         <TopBar />
-        <main className="min-h-0 flex-1 overflow-auto px-6 py-6">
+        <main className="relative min-h-0 flex-1 overflow-auto px-6 py-6">
           {!inTauri ? (
             <div className="grid h-full place-items-center text-center text-[13px] text-ink-muted">
               <div>
@@ -68,18 +72,17 @@ export default function App() {
                 for sample data.
               </div>
             </div>
-          ) : !ready ? null : page === "apps" ? (
-            <AppsPage />
-          ) : page === "updates" ? (
-            <UpdatesPage />
-          ) : page === "blender" ? (
-            <BlenderPage />
-          ) : (
-            <SettingsPage />
+          ) : !ready ? null : (
+            // Keyed by page: each page slides in when it opens.
+            <div key={page} className="fx-enter animate-page-in">
+              {page === "apps" ? <AppsPage /> : page === "updates" ? <UpdatesPage /> : page === "blender" ? <BlenderPage /> : <SettingsPage />}
+            </div>
           )}
         </main>
       </div>
       <AppDetails />
+      <InstallDialog />
+      <AboutDialog />
       <Toasts />
     </div>
   );

@@ -55,6 +55,7 @@ pub fn run() {
             commands::app_states,
             commands::check_updates,
             commands::install_app,
+            commands::install_target,
             commands::uninstall_app,
             commands::launch_app,
             commands::reveal_path,

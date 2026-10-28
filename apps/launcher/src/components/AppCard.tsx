@@ -1,7 +1,7 @@
-import { PillBadge, cn } from "@abyss/ui";
+import { PillBadge, cn, spotlight } from "@abyss/ui";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { ArrowDownToLine, BellRing, ExternalLink, FolderOpen, Info, Play, RefreshCw, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useT, type Messages } from "../i18n";
 import { fileName } from "../lib/format";
 import { ipc } from "../lib/ipc";
@@ -24,6 +24,7 @@ function versionLine(v: AppView, t: Messages["card"]): string {
 export function AppCard({ view: v }: { view: AppView }) {
   const t = useT();
   const install = useLauncher((s) => s.install);
+  const requestInstall = useLauncher((s) => s.requestInstall);
   const uninstall = useLauncher((s) => s.uninstall);
   const launch = useLauncher((s) => s.launch);
   const toggleQueued = useLauncher((s) => s.toggleQueued);
@@ -51,7 +52,7 @@ export function AppCard({ view: v }: { view: AppView }) {
   else if (!installed && v.kind === "local") action = null;
   else if (!installed)
     action = (
-      <button type="button" className="btn btn-primary" onClick={() => void install(v.id)}>
+      <button type="button" className="btn btn-primary" onClick={() => requestInstall(v.id)}>
         <ArrowDownToLine className="size-3.5" /> {t.common.install}
       </button>
     );
@@ -81,10 +82,9 @@ export function AppCard({ view: v }: { view: AppView }) {
 
   return (
     <article
-      className={cn(
-        "group relative flex min-h-[168px] flex-col overflow-hidden rounded-xl border border-edge bg-panel p-4 transition-colors hover:border-edge-strong",
-        comingSoon && "opacity-75",
-      )}
+      className={cn("fx-card group flex min-h-[168px] flex-col overflow-hidden rounded-xl border border-edge bg-panel p-4 hover:border-edge-strong", comingSoon && "opacity-75")}
+      style={{ "--fx-tint": accent } as CSSProperties}
+      onPointerMove={spotlight}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-20 opacity-60" style={{ background: `linear-gradient(180deg, ${accent}22, transparent)` }} />
       <div className="relative flex gap-3">

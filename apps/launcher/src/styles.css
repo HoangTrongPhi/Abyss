@@ -1,2 +1,183 @@
 @import "tailwindcss";
 @import "@abyss/ui/theme.css";
+
+@theme {
+  /* About dialog: the blueprint look of the author's portfolio site (as in Poseidon). */
+  --color-blueprint: #5ec8ff;
+  --color-blueprint-deep: #07142a;
+  /* The deep-water tint of the backdrop and the hero. */
+  --color-abyss: #2dd4bf;
+}
+
+/*
+ * Deep-water backdrop behind the pages (components/Ambient.tsx): two slow glows and a few rising
+ * bubbles. Transforms and opacity only, on their own layers, so nothing behind or above repaints.
+ * Effects (Settings → Appearance): "Calm" stops them, "Off" removes the backdrop.
+ */
+.abyss-glow {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+.abyss-glow-a {
+  left: -28vmax;
+  top: -38vmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 17%, transparent), transparent);
+  animation: abyss-drift-a 38s ease-in-out infinite alternate;
+}
+.abyss-glow-b {
+  right: -30vmax;
+  bottom: -42vmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-abyss) 13%, transparent), transparent);
+  animation: abyss-drift-b 46s ease-in-out infinite alternate;
+}
+@keyframes abyss-drift-a {
+  to { transform: translate(16vmax, 12vmax) scale(1.15); }
+}
+@keyframes abyss-drift-b {
+  to { transform: translate(-14vmax, -9vmax) scale(0.9); }
+}
+
+/* Each bubble is a column as tall as the backdrop, starting just below it: translateY(-100%) is one full rise. */
+.abyss-bubble {
+  position: absolute;
+  top: 100%;
+  height: 100%;
+  width: var(--size);
+  will-change: transform, opacity;
+  animation: abyss-rise linear infinite;
+}
+.abyss-bubble::before {
+  content: "";
+  display: block;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-abyss) 55%, white);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-abyss) 70%, transparent);
+  opacity: 0.55;
+}
+@keyframes abyss-rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--sway), -104%); opacity: 0; }
+}
+:root[data-theme="light"] .abyss-glow {
+  opacity: 0.7;
+}
+:root[data-theme="light"] .abyss-bubble::before {
+  background: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  box-shadow: none;
+}
+/* Still bubbles would read as dust: Calm keeps only the glows. */
+:root[data-fx="reduced"] .abyss-bubble {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .abyss-bubble {
+    display: none;
+  }
+}
+
+/* Apps page hero: drifting light, a faint grid and a halo breathing behind the logo. */
+.abyss-hero-grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-abyss) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-abyss) 9%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask: linear-gradient(90deg, transparent 35%, #000 80%);
+}
+.abyss-hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+.abyss-hero-blob-a {
+  width: 340px;
+  height: 340px;
+  right: -60px;
+  bottom: -230px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-abyss) 30%, transparent), transparent);
+  animation: abyss-hero-a 14s ease-in-out infinite alternate;
+}
+.abyss-hero-blob-b {
+  width: 300px;
+  height: 300px;
+  right: 120px;
+  top: -200px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-accent) 26%, transparent), transparent);
+  animation: abyss-hero-b 18s ease-in-out infinite alternate;
+}
+@keyframes abyss-hero-a {
+  to { transform: translate(-140px, -30px) scale(1.2); }
+}
+@keyframes abyss-hero-b {
+  to { transform: translate(110px, 40px) scale(0.85); }
+}
+.abyss-halo {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-abyss) 45%, transparent), transparent);
+  will-change: transform, opacity;
+  animation: abyss-breathe 4.5s ease-in-out infinite;
+}
+@keyframes abyss-breathe {
+  0%, 100% { transform: scale(0.85); opacity: 0.45; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Bell: one swing when the unread count goes up. */
+.abyss-ring {
+  transform-origin: 50% 8%;
+  animation: abyss-ring 900ms ease-in-out;
+}
+@keyframes abyss-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-13deg); }
+  45% { transform: rotate(9deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+}
+
+/* About dialog hero: a blueprint grid and a wireframe that draws itself in (as in Poseidon). */
+.blueprint-grid {
+  background-color: var(--color-blueprint-deep);
+  background-image:
+    radial-gradient(ellipse at 30% 40%, color-mix(in srgb, var(--color-blueprint) 22%, transparent), transparent 65%),
+    linear-gradient(color-mix(in srgb, var(--color-blueprint) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-blueprint) 9%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px, 22px 22px;
+}
+.blueprint-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: blueprint-draw 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.blueprint-glow {
+  text-shadow: 0 0 18px color-mix(in srgb, var(--color-blueprint) 55%, transparent);
+}
+@keyframes blueprint-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes blueprint-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.blueprint-pulse {
+  animation: blueprint-pulse 2s ease-in-out infinite;
+}
+:root[data-fx="off"] .blueprint-draw {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blueprint-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .blueprint-pulse {
+    animation: none;
+  }
+}

@@ -15,6 +15,15 @@ const catalog: Catalog = {
   ...(realCatalog as unknown as Catalog),
   apps: [
     ...(realCatalog as unknown as Catalog).apps.filter((a) => a.status !== "slot"),
+    {
+      id: "sample-tool",
+      name: "Sample Tool",
+      tagline: "Mock data: an app you can install, to try the install dialog",
+      category: "Sample",
+      accent: "#f59e0b",
+      status: "available",
+      install: { kind: "nsis", uninstallKey: "Sample Tool", exe: "sample-tool.exe" },
+    },
     { id: "sample-next", name: "Sample Next", tagline: "Mock data: an app that is not released yet", category: "Sample", accent: "#10b981", status: "coming_soon" },
     ...(realCatalog as unknown as Catalog).apps.filter((a) => a.status === "slot"),
   ],
@@ -27,7 +36,10 @@ const catalog: Catalog = {
 let installed: Record<string, string> = { poseidon: "1.0.1" };
 let running = new Set<string>();
 const localApps: LocalApp[] = [{ id: "local-my-tool", name: "My Tool", path: "D:\\Tools\\MyTool\\MyTool.exe", args: [] }];
-let settings: Settings = { closeToTray: true, autoCheck: true, notify: true, catalogUrl: null, language: "en", localApps };
+const LOCAL = "C:\\Users\\me\\AppData\\Local";
+/** Install folder of each app installed in this mock session. */
+const dirs: Record<string, string> = {};
+let settings: Settings = { closeToTray: true, autoCheck: true, notify: true, catalogUrl: null, language: "en", installRoot: null, askInstallDir: true, desktopShortcut: true, localApps };
 const blender: BlenderInstall[] = [
   { executable: "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe", version: "5.2.2", series: "5.2", supported: true, userDir: "", modules: ["node_wrangler_plus"] },
   { executable: "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe", version: "5.1.0", series: "5.1", supported: true, userDir: "", modules: [] },
@@ -57,7 +69,7 @@ function states(): AppStatus[] {
     .filter((a) => a.install)
     .map((a) => ({
       id: a.id,
-      installed: installed[a.id] ? { version: installed[a.id], installDir: `C:\\Users\\me\\AppData\\Local\\${a.name}`, exe: `C:\\Users\\me\\AppData\\Local\\${a.name}\\${a.install!.exe}` } : null,
+      installed: installed[a.id] ? { version: installed[a.id], installDir: dirs[a.id] ?? `${LOCAL}\\${a.name}`, exe: `${dirs[a.id] ?? `${LOCAL}\\${a.name}`}\\${a.install!.exe}` } : null,
       running: running.has(a.id),
     }));
   for (const l of settings.localApps) out.push({ id: l.id, installed: { version: "", installDir: "D:\\Tools\\MyTool", exe: l.path }, running: running.has(l.id) });
@@ -72,7 +84,7 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("mock")) {
       const a = (args ?? {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
       switch (cmd) {
         case "app_info":
-          return { version: "0.1.0", dataDir: "C:\\Users\\me\\AppData\\Local\\com.phineas.abyss" };
+          return { version: "0.1.0", dataDir: `${LOCAL}\\com.phineas.abyss`, defaultInstallRoot: LOCAL };
         case "catalog_get":
         case "catalog_refresh":
           return { catalog, source: "bundled", baseUrl: null, error: cmd === "catalog_refresh" ? "https://raw.githubusercontent.com/…/catalog.json: not found (404)" : null } satisfies LoadedCatalog;
@@ -88,7 +100,21 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("mock")) {
               error: null,
             },
           ] satisfies LatestInfo[];
+        case "install_target": {
+          const root: string = a.root ?? settings.installRoot ?? LOCAL;
+          const app = catalog.apps.find((x) => x.id === a.id);
+          return {
+            root,
+            dir: `${root.replace(/\\$/, "")}\\${app?.install?.uninstallKey ?? a.id}`,
+            isDefault: root === LOCAL,
+            writable: !/program files|\\windows/i.test(root),
+            notEmpty: /old/i.test(root),
+            free: root.startsWith("C") ? 38e9 : 412e9,
+          };
+        }
         case "install_app":
+          console.info("[mock] install", a.id, a.options);
+          if (!installed[a.id]) dirs[a.id] = `${(a.options?.root ?? settings.installRoot ?? LOCAL).replace(/\\$/, "")}\\${catalog.apps.find((x) => x.id === a.id)?.install?.uninstallKey}`;
           await job(a.id, ["resolving", "downloading", "verifying", "installing"], `${catalog.apps.find((x) => x.id === a.id)?.name} v1.0.2 installed`);
           installed = { ...installed, [a.id]: "1.0.2" };
           return states().find((s) => s.id === a.id)!.installed;
@@ -103,7 +129,16 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("mock")) {
         case "get_settings":
           return settings;
         case "save_settings":
-          settings = { ...settings, closeToTray: a.closeToTray, autoCheck: a.autoCheck, notify: a.notify, catalogUrl: a.catalogUrl };
+          settings = {
+            ...settings,
+            closeToTray: a.closeToTray,
+            autoCheck: a.autoCheck,
+            notify: a.notify,
+            catalogUrl: a.catalogUrl,
+            installRoot: a.installRoot === LOCAL ? null : a.installRoot,
+            askInstallDir: a.askInstallDir,
+            desktopShortcut: a.desktopShortcut,
+          };
           return settings;
         case "set_language":
           settings = { ...settings, language: a.language };
@@ -132,7 +167,7 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has("mock")) {
           for (const b of blender) b.modules = b.modules.filter((m) => m !== a.module);
           return a.executables.map((executable: string) => ({ executable, ok: true, module: a.module, error: null }));
         case "plugin:dialog|open":
-          return "D:\\Tools\\Krita\\krita.exe";
+          return a.options?.directory ? "D:\\Apps" : "D:\\Tools\\Krita\\krita.exe";
         case "plugin:dialog|ask":
         case "plugin:dialog|message":
           return true;
