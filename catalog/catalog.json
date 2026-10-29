@@ -1,7 +1,7 @@
 {
   "$schema": "./catalog.schema.json",
   "schema": 1,
-  "revision": 2,
+  "revision": 3,
   "apps": [
     {
       "id": "poseidon",
@@ -28,7 +28,7 @@
       "category": "2D Pipeline",
       "icon": "icons/coral.svg",
       "accent": "#a855f7",
-      "status": "coming_soon",
+      "status": "available",
       "repo": "HoangTrongPhi/Coral",
       "homepage": "https://github.com/HoangTrongPhi/Coral",
       "install": {
