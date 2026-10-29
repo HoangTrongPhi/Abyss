@@ -2,11 +2,12 @@
 /**
  * Make a new suite app from templates/tauri-app and give it a free slot in the catalog.
  *
- *   npm run new-app -- "Nereid" --tagline "Texture library" --category "Texturing"
+ *   npm run new-app -- "Nereid" --tagline "Texture library" --category "Texturing" --spec docs/app-specs/01_CORAL.md
  *
  * Options:
  *   --tagline <text>     one line under the name (default: "A Phineas app")
  *   --category <text>    catalog category (default: "Tools")
+ *   --spec <file>        copy this spec to <app>/docs/SPEC.md (placeholders in it are left alone)
  *   --accent <#rrggbb>   brand colour (default: picked from the name)
  *   --repo <owner/name>  GitHub repository for releases (default: HoangTrongPhi/<Name>)
  *   --out <dir>          where to create it (default: next to the Abyss folder)
@@ -16,7 +17,8 @@
  *   --catalog-file <f>   use another catalog.json (trying the script out)
  *   --no-install         skip npm install
  *
- * What it does: copies the template with the names filled in, creates the updater signing key
+ * What it does: copies the template with the names filled in (file names too), writes docs/SPEC.md and
+ * docs/PROGRESS.md, creates the updater signing key
  * (~/.tauri/<id>.key, kept if it exists), renders the icons, puts the app into the first free slot
  * of the catalog as "coming_soon" (revision bumped) and runs npm install.
  */
@@ -61,6 +63,8 @@ const port = Number(opts.port ?? 1440 + (hash % 50) * 2);
 const repo = opts.repo ?? `HoangTrongPhi/${compact}`;
 const out = resolve(opts.out ?? join(root, "..", compact));
 if (existsSync(out) && readdirSync(out).length) fail(`${out} already exists and is not empty`);
+const spec = opts.spec ? resolve(root, opts.spec) : null;
+if (spec && !existsSync(spec)) fail(`--spec ${opts.spec} not found`);
 
 /** Path from the new app to a file in Abyss, as package.json wants it (forward slashes). */
 function fromApp(target) {
@@ -108,14 +112,44 @@ function copyDir(from, to) {
   for (const entry of readdirSync(from, { withFileTypes: true })) {
     const src = join(from, entry.name);
     // npm drops files named .gitignore from packages, so the template keeps it as "gitignore".
-    const dest = join(to, entry.name === "gitignore" ? ".gitignore" : entry.name);
+    // File names carry placeholders too (src/types/__APP_ID__.ts).
+    const dest = join(to, entry.name === "gitignore" ? ".gitignore" : fill(entry.name));
     if (entry.isDirectory()) copyDir(src, dest);
     else writeFileSync(dest, fill(readFileSync(src, "utf8")));
   }
 }
 copyDir(template, out);
-const leftover = JSON.stringify(readdirSync(out, { recursive: true }).filter((f) => /\.(json|ts|tsx|rs|toml|html|css|md|yml|svg)$/.test(f)).map((f) => readFileSync(join(out, f), "utf8")).join()).match(/__[A-Z][A-Z_]+__/);
-if (leftover) fail(`template placeholder ${leftover[0]} was not filled`);
+
+// ------------------------------------------------------------------ docs: spec and progress
+mkdirSync(join(out, "docs"), { recursive: true });
+if (spec) copyFileSync(spec, join(out, "docs", "SPEC.md"));
+const today = new Date().toISOString().slice(0, 10);
+writeFileSync(
+  join(out, "docs", "PROGRESS.md"),
+  `# ${name} — Progress
+
+## Status
+- Current phase: P0 — Scaffold (done by create-app)
+- Last session: ${today} — app created from templates/tauri-app${spec ? ` with ${relative(root, spec).replace(/\\/g, "/")}` : ""}
+- \`npm run check\`: not run yet
+
+## Phases
+- [ ] P0 Scaffold — replace the Folder Stats sample module with the app's modules${spec ? " (see docs/SPEC.md)" : ""}
+
+## Decisions (answers to the spec's open questions)
+- (none yet)
+
+## Known issues / next steps
+- (none yet)
+`,
+);
+
+// SPEC.md is a verbatim copy: placeholders in it are the spec's business.
+const leftover = readdirSync(out, { recursive: true })
+  .filter((f) => /\.(json|ts|tsx|rs|toml|html|css|md|yml|svg|mjs)$/.test(f) && !/docs[\\/]SPEC\.md$/.test(f))
+  .map((f) => [f, readFileSync(join(out, f), "utf8").match(/__[A-Z][A-Z_]+__/) ?? (/__[A-Z][A-Z_]+__/.test(f) ? [f] : null)])
+  .find(([, m]) => m);
+if (leftover) fail(`template placeholder ${leftover[1][0]} was not filled (${leftover[0]})`);
 console.log(`Created ${out}`);
 
 // ------------------------------------------------------------------ icons
@@ -157,6 +191,8 @@ if (!opts.install) run("npm", ["install", "--no-audit", "--no-fund"], out);
 console.log(`
 Next:
   cd "${out}"
+  npm run check                             # typecheck + mock coverage + cargo test
+  npm run dev                               # then open http://localhost:${port}/?mock
   npm run tauri dev                         # start building ${name}
   git init && gh repo create ${repo} --public --source . --push
   npm run release -- -Version 0.1.0 -Publish   # first release (back up ${keyPath}!)

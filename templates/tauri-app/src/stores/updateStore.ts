@@ -2,7 +2,8 @@ import { shouldSelfUpdate } from "@abyss/ui";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { create } from "zustand";
-import { inTauri, ipc } from "../lib/ipc";
+import { inTauri } from "../lib/ipc";
+import type { AppInfo } from "../types/__APP_ID__";
 
 /**
  * Check for updates against the `latest.json` of the newest GitHub release (`plugins.updater` in
@@ -51,8 +52,7 @@ export const useUpdateStore = create<UpdateState>()((set) => ({
 }));
 
 /** Once per launch, release builds only, and only when Abyss is not managing updates. */
-export async function startupUpdateCheck() {
-  if (!inTauri || import.meta.env.DEV) return;
-  const info = await ipc.appInfo();
+export async function startupUpdateCheck(info: AppInfo) {
+  if (!inTauri || import.meta.env.DEV || info.debug) return;
   if (shouldSelfUpdate(info.abyss)) setTimeout(() => void useUpdateStore.getState().check(), 4000);
 }

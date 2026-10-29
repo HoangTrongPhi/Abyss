@@ -18,3 +18,8 @@ export {
   type ThemeMode,
 } from "./appearance";
 export { shouldSelfUpdate, STANDALONE, type AbyssContext } from "./abyss";
+export { LogDrawer, type LogEntry, type LogLevel } from "./LogDrawer";
+export { CommandPalette, fuzzyScore, type PaletteItem } from "./CommandPalette";
+export { AboutDialog, type Author, type AuthorHighlight, type AuthorLink, type AuthorLinkKind } from "./AboutDialog";
+export { describeWatch, WatchToggle, type WatchStatus } from "./WatchToggle";
+export { JobProgress } from "./JobProgress";

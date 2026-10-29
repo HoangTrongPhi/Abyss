@@ -9,7 +9,10 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "tauri": "tauri",
-    "release": "powershell -ExecutionPolicy Bypass -File \"__RELEASE_SCRIPT__\" -App ."
+    "release": "powershell -ExecutionPolicy Bypass -File \"__RELEASE_SCRIPT__\" -App .",
+    "check:mock": "node scripts/check-mock.mjs",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check": "npm run typecheck && npm run check:mock && npm run test"
   },
   "dependencies": {
     "@abyss/ui": "__UI_DEP__",
@@ -17,6 +20,8 @@
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.3",
+    "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-updater": "^2.14.1",
     "clsx": "^2.1.1",

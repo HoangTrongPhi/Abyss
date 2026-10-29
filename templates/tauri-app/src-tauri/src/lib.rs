@@ -1,35 +1,56 @@
-//! __APP_NAME__ — Tauri 2 backend.
+//! __APP_NAME__ — Tauri 2 backend: IPC command registration and app bootstrap.
 
-use serde::Serialize;
+pub mod cli;
+mod commands;
+pub mod core;
+pub mod utils;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AbyssContext {
-    managed: bool,
-    launcher_version: Option<String>,
-}
+#[cfg(test)]
+mod ipc_tests;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppInfo {
-    version: &'static str,
-    abyss: AbyssContext,
-}
+use tauri::{Builder, Runtime};
+use utils::jobs::JobRegistry;
+use utils::logbus::{self, Level, LogBus};
 
-/// Version, and whether the Abyss launcher started us (it sets `ABYSS=1`).
-#[tauri::command]
-fn app_info() -> AppInfo {
-    AppInfo {
-        version: env!("CARGO_PKG_VERSION"),
-        abyss: AbyssContext { managed: std::env::var("ABYSS").is_ok_and(|v| v == "1"), launcher_version: std::env::var("ABYSS_VERSION").ok() },
-    }
+/// State, startup hook and IPC commands, shared by the real app and the IPC tests.
+fn configure<R: Runtime>(builder: Builder<R>) -> Builder<R> {
+    builder
+        .manage(LogBus::default())
+        .manage(JobRegistry::default())
+        .manage(commands::watch_cmd::WatchRegistry::default())
+        .setup(|app| {
+            logbus::emit(
+                app.handle(),
+                Level::Info,
+                "app",
+                format!("__APP_NAME__ v{} started ({} {})", env!("CARGO_PKG_VERSION"), std::env::consts::OS, std::env::consts::ARCH),
+            );
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::app_cmd::app_info,
+            commands::app_cmd::log_history,
+            commands::app_cmd::ui_log,
+            commands::app_cmd::cancel_job,
+            commands::app_cmd::open_url,
+            commands::app_cmd::reveal_in_explorer,
+            commands::app_cmd::get_settings,
+            commands::app_cmd::set_settings,
+            commands::sample_cmd::folder_stats,
+            commands::watch_cmd::watch_start,
+            commands::watch_cmd::watch_stop,
+            commands::watch_cmd::watch_list,
+        ])
 }
 
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![app_info])
-        .run(tauri::generate_context!())
-        .expect("error while running __APP_NAME__");
+    configure(
+        Builder::default()
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_fs::init())
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .plugin(tauri_plugin_process::init()),
+    )
+    .run(tauri::generate_context!())
+    .expect("error while running __APP_NAME__");
 }

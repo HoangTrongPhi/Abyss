@@ -11,7 +11,8 @@ Abyss/
 │   └── src-tauri/src/      catalog, release (latest.json), verify (SHA-256 + minisign), installer,
 │                           system (registry, processes, launch), blender, tray, settings, commands
 ├── packages/abyss-ui/      @abyss/ui — theme + components shared by the launcher and every app
-├── templates/tauri-app/    starting point for a new app (npm run new-app)
+├── templates/tauri-app/    starting point for a new app (npm run new-app): CLI, ?mock, jobs, watch,
+│                           log drawer, palette, sample module; see its README
 ├── catalog/                catalog.json (apps, add-ons, free slots) + icons, read by every launcher
 ├── scripts/                release.ps1, create-app.mjs, validate-catalog.mjs
 ├── docs/RELEASE_STANDARD.md
@@ -26,7 +27,7 @@ npm run tauri dev            # launcher with hot reload
 npm run dev                  # UI only; open http://localhost:1430/?mock for sample data
 npm run build                # typecheck + bundle the UI
 npm run typecheck            # every workspace
-npm run new-app -- "Name" --tagline "..." --category "..."
+npm run new-app -- "Name" --tagline "..." --category "..." --spec docs/app-specs/<NN>_<NAME>.md
 npm run catalog:check        # add -- --online to also check the live releases
 cargo test --manifest-path apps/launcher/src-tauri/Cargo.toml
 ```

@@ -8,8 +8,8 @@ Spec cho các app và add-on sắp tới. Mỗi file viết sao cho **một agen
 | # | File | Loại | Phụ thuộc | MVP | Trạng thái |
 |---|---|---|---|---|---|
 | — | [00_SHARED_FRAMEWORK.md](00_SHARED_FRAMEWORK.md) | Quy ước chung (Tauri app + Phần B add-on) | — | — | tham chiếu |
-| 0 | [00_TEMPLATE_UPGRADE.md](00_TEMPLATE_UPGRADE.md) | Nâng cấp `templates/tauri-app`: CLI, `?mock`, watch, job, log | — | T1–T5 | chưa làm |
-| 1 | [01_CORAL.md](01_CORAL.md) | App: sprite atlas & animation 2D | #0 | P5 | chưa làm |
+| 0 | [00_TEMPLATE_UPGRADE.md](00_TEMPLATE_UPGRADE.md) | Nâng cấp `templates/tauri-app`: CLI, `?mock`, watch, job, log | — | T1–T5 | xong (2026-10-29) |
+| 1 | [01_CORAL.md](01_CORAL.md) | App: sprite atlas & animation 2D | #0 | P5 | P0–P10 xong; chờ kiểm chứng engine + phát hành 0.1.0 |
 | 2 | [02_CONCH.md](02_CONCH.md) | App: localization & font | #0 | P5 | chưa làm |
 | 3 | [03_SIREN.md](03_SIREN.md) | App: audio lint & batch | #0 | P5 | chưa làm |
 | 4 | [04_KRAKEN.md](04_KRAKEN.md) | App: build size & frame time | #0 | P4 | chưa làm |
