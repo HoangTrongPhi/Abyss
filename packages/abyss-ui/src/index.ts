@@ -23,3 +23,14 @@ export { CommandPalette, fuzzyScore, type PaletteItem } from "./CommandPalette";
 export { AboutDialog, type Author, type AuthorHighlight, type AuthorLink, type AuthorLinkKind } from "./AboutDialog";
 export { describeWatch, WatchToggle, type WatchStatus } from "./WatchToggle";
 export { JobProgress } from "./JobProgress";
+export {
+  HelpPanel,
+  type HelpBlock,
+  type HelpLang,
+  type HelpPanelLabels,
+  type HelpPanelProps,
+  type HelpSection,
+  type HelpText,
+  type HelpTopic,
+  type L,
+} from "./HelpPanel";
