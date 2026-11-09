@@ -1,7 +1,7 @@
 # PrimeOffice — Pixel office for your AI coding agents
 
 > **Ưu tiên**: 11 · **Dùng cho**: theo dõi các phiên agent (Claude Code hôm nay; Codex/ChatGPT, Gemini,
-> DeepSeek sau) dưới dạng văn phòng pixel · **MVP**: hết P5 (v0.1.0)
+> DeepSeek sau) dưới dạng văn phòng pixel · **MVP**: hết P5 (v0.1.0) · **Hiện tại**: v0.2.0 (P8 studio)
 > **Đọc trước**: `00_SHARED_FRAMEWORK.md`. Tiền điều kiện: `00_TEMPLATE_UPGRADE.md` đã xong.
 > **Nguồn gốc**: fork `P:\Phineas_LIB\Gogo_Gadgets\pixel-agents` (upstream `pixel-agents-hq/pixel-agents`,
 > MIT, commit `b1bafd0` v1.5.0). Khảo sát chi tiết: `pixel-agents/docs/SURVEY.md`.
@@ -144,6 +144,29 @@ Rail (template): **Office** (`Ctrl+1`), **Projects** (`Ctrl+2`), **History** (`C
 - **History**: danh sách phiên mới nhất (lọc theo project/provider), mỗi dòng: tiêu đề, prompt gần nhất, 3 hành động
   cuối, thời gian tương đối; mở ra xem đầy đủ.
 - **Providers**: thẻ mỗi provider với trạng thái detect.
+- **Floor plan…** (v0.2.0, thanh trên của Office): nạp **Game studio** hoặc **Classic office** (thay layout hiện tại).
+
+### 5.1 Studio: agent con và phòng ban (v0.2.0)
+
+Dành cho project Claude Code Game Studios (`UEHF_Studio`, các game của nó như `Truffle_Shooter`,
+`CustomClaudeCodeStudio`): 39–49 agent chia 3 tầng, gọi bằng `Agent` với `subagent_type`.
+
+- **Agent con = nhân vật riêng**: observer đọc `<session>/subagents/agent-*.jsonl` + `.meta.json`
+  (`toolUseId` nối với lời gọi `Agent`, `agentType`, `finished`), gửi `subagentToolStart/Done/Clear` kèm `agentType`.
+- **Phòng ban**: bảng `agentType → phòng` (`src/office/webview/src/office/engine/departments.ts`); agent con đi về bàn
+  trong Area có tên trùng phòng (không phân biệt hoa thường/dấu). Phòng hết bàn → đứng trong phòng.
+- **Mặt bằng Game studio** (`scripts/gen-studio-layout.py`, 46×42, script tự kiểm tra chỗ ngồi, chồng đồ, lối đi):
+
+```
+| Ban giám đốc   | Phòng họp  | Release & ops    |
+| Design         | Studio head| Engineering (10) |
+| Narrative | Art | Audio     | Engine lab + Editor desk |
+| Loc & community| Lounge     | QA               |
+```
+
+- **Chỗ ghé**: ≥2 giám đốc cùng chạy → Phòng họp; gọi editor qua MCP (`mcp__unreal-mcp__call_tool`, Unity/Godot tương
+  tự) → Editor desk, mỗi lúc một người; session chính xong lượt → Lounge. Ghế được nhớ là ghế gốc, không phải chỗ ghé.
+- Nội thất riêng (CC0, `scripts/gen-furniture.py`): tủ server, giá vẽ, loa, arcade, bình nước, máy test.
 
 ## 6. CLI
 
@@ -165,6 +188,7 @@ primeoffice providers
 | P5 | Release 0.1.0 (chỉ khi người dùng cho phép), catalog `available` | Cài được từ Abyss |
 | P6 | Codex/Gemini provider đầy đủ (sau khi kiểm chứng format) | Nhân vật Codex/Gemini xuất hiện |
 | P7 | (tuỳ chọn) Hook Claude qua chính `primeoffice.exe hook` để có trạng thái quyền chính xác | Bong bóng "…" khi chờ quyền |
+| P8 | Studio (v0.2.0, §5.1): agent con theo transcript riêng, phòng ban, mặt bằng Game studio, chỗ ghé, nội thất | Xong 2026-11-10 (kiểm trong `?mock`; chưa thử session UEHF thật) |
 
 ## 8. Câu hỏi mở
 - Q1: Cửa sổ "đang hoạt động" mặc định 30 phút có hợp không?
