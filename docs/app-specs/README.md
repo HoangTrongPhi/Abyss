@@ -19,6 +19,7 @@ Spec cho các app và add-on sắp tới. Mỗi file viết sao cho **một agen
 | 8 | [08_ADDON_TRIDENT.md](08_ADDON_TRIDENT.md) | Add-on Blender: validate + collision/LOD + batch export | — | P4 | chưa làm |
 | 9 | [09_ADDON_COMPASS.md](09_ADDON_COMPASS.md) | Add-on Blender: texel density & UV | — | P3 | chưa làm |
 | 10 | [10_POSEIDON_ADDITIONS.md](10_POSEIDON_ADDITIONS.md) | Poseidon: VRAM budget, LOD glTF, tileable | — | từng phần | chưa làm |
+| 11 | [11_PRIMEOFFICE.md](11_PRIMEOFFICE.md) | App: văn phòng pixel theo dõi agent AI (fork pixel-agents) | #0 | P5 | v0.1.0 đã build, chờ đăng GitHub |
 
 Cột *Trạng thái* chỉ là tổng quan; trạng thái chi tiết nằm trong `docs/PROGRESS.md` của từng app.
 

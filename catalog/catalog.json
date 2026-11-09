@@ -1,7 +1,7 @@
 {
   "$schema": "./catalog.schema.json",
   "schema": 1,
-  "revision": 3,
+  "revision": 5,
   "apps": [
     {
       "id": "poseidon",
@@ -38,7 +38,23 @@
         "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFOTdCQzVGREZGNkM0ODUKUldTRnhQYmZYN3lYTHE2M2kzMHFuaUxPcW5YaWF4V2pGam4wMEJDWFBpY3J1b1RFZThtR2JJRW4K"
       }
     },
-    { "id": "slot-2", "status": "slot" },
+    {
+      "id": "primeoffice",
+      "name": "PrimeOffice",
+      "tagline": "Pixel office for your AI coding agents",
+      "category": "AI Agents",
+      "icon": "icons/primeoffice.svg",
+      "accent": "#a855f7",
+      "status": "available",
+      "repo": "HoangTrongPhi/PrimeOffice",
+      "homepage": "https://github.com/HoangTrongPhi/PrimeOffice",
+      "install": {
+        "kind": "nsis",
+        "uninstallKey": "PrimeOffice",
+        "exe": "primeoffice.exe",
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE4NThCNTBGOEU4QkI0RTEKUldUaHRJdU9EN1ZZcU5ZK3FmNjQvdHNGbVJsUExRVk1PdU1LRDgvbW9NbWNiNms2TzlxSGtWRzUK"
+      }
+    },
     { "id": "slot-3", "status": "slot" },
     { "id": "slot-4", "status": "slot" },
     { "id": "slot-5", "status": "slot" }
