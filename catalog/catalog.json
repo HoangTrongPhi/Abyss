@@ -1,7 +1,7 @@
 {
   "$schema": "./catalog.schema.json",
   "schema": 1,
-  "revision": 5,
+  "revision": 6,
   "apps": [
     {
       "id": "poseidon",
@@ -38,7 +38,7 @@
         "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFOTdCQzVGREZGNkM0ODUKUldTRnhQYmZYN3lYTHE2M2kzMHFuaUxPcW5YaWF4V2pGam4wMEJDWFBpY3J1b1RFZThtR2JJRW4K"
       }
     },
-        {
+    {
       "id": "primeoffice",
       "name": "PrimeOffice",
       "tagline": "Pixel office for your AI coding agents",
@@ -55,7 +55,23 @@
         "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE4NThCNTBGOEU4QkI0RTEKUldUaHRJdU9EN1ZZcU5ZK3FmNjQvdHNGbVJsUExRVk1PdU1LRDgvbW9NbWNiNms2TzlxSGtWRzUK"
       }
     },
-    { "id": "slot-3", "status": "slot" },
+    {
+      "id": "switchgit",
+      "name": "SwitchGit",
+      "tagline": "Git identities that never cross",
+      "category": "Developer Tools",
+      "icon": "icons/switchgit.svg",
+      "accent": "#f97316",
+      "status": "available",
+      "repo": "HoangTrongPhi/SwitchGit",
+      "homepage": "https://github.com/HoangTrongPhi/SwitchGit",
+      "install": {
+        "kind": "nsis",
+        "uninstallKey": "SwitchGit",
+        "exe": "switchgit.exe",
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY1MkE2QUE3NjAzMDI2MjEKUldRaEpqQmdwMm9xOVlpaFFOUTFLeFU5Mm1CTXlvcU5IMXJhY1JHRW96NXV6ZWZxSWduK1pRQUMK"
+      }
+    },
     { "id": "slot-4", "status": "slot" },
     { "id": "slot-5", "status": "slot" }
   ],
